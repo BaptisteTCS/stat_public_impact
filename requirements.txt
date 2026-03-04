@@ -1,6 +1,5 @@
 streamlit
 pandas
 sqlalchemy
-psycopg
 streamlit-elements
 python-dateutil
