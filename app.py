@@ -4,15 +4,22 @@ st.set_page_config(
     page_title="Dashboard TET",
     page_icon="🏄‍♂️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Configuration de la navigation avec des sections (groupes)
+st.markdown("""
+    <style>
+        [data-testid="collapsedControl"] { display: none; }
+        section[data-testid="stSidebar"] { display: none; }
+        .block-container { padding-left: 2rem; padding-right: 2rem; max-width: 100%; }
+    </style>
+""", unsafe_allow_html=True)
+
 pages = {
     "Favoris": [
         st.Page("pages/statistique_impact.py", icon="🌠"),
     ],
 }
 
-pg = st.navigation(pages)
+pg = st.navigation(pages, position="hidden")
 pg.run()
