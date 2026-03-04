@@ -1,5 +1,13 @@
-streamlit
-pandas
-sqlalchemy
-streamlit-elements
-python-dateutil
+streamlit>=1.51
+pandas>=2.1
+plotly>=5.20
+matplotlib>=3.7
+numpy>=1.25
+pyarrow>=14.0
+requests>=2.31
+streamlit-elements==0.1.*
+geopandas==1.1.2
+
+# SQL
+SQLAlchemy>=2.0
+psycopg[binary]>=3.1
