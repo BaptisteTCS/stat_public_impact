@@ -40,6 +40,8 @@ theme_actif = {
     }
 }
 
+DATE_DEBUT_GRAPHES = pd.Timestamp("2024-01-01")
+
 
 # ===================================================
 # DONNÉES : Chargement depuis la base de données
@@ -54,9 +56,11 @@ def load_data():
     df_pap = read_table('passage_pap_region')
     df_fap = read_table('evolution_fa_region')
     df_ind_perso = read_table('evolution_ind_pers')
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso
+    df_ind_od = read_table('evolution_ind_od')
+    df_ind_od_producteur = read_table('ind_od_producteur_indicateur')
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur = load_data()
 
 
 # ===================================================
@@ -84,7 +88,7 @@ with selects[1]:
 # ainsi qu'un total global, pour le territoire sélectionné.
 # ===================================================
 
-st.markdown("*La sélection d'un territoire s'applique à toute la page*")
+st.markdown("*La sélection d'un territoire s'applique à toute la page.*")
 st.markdown("---")
 
 # Badge indiquant le périmètre géographique actif
@@ -201,7 +205,7 @@ else:
                     "tickSize": 5,
                     "tickPadding": 5,
                     "tickRotation": -45,
-                    "legend": "Mois",
+                    "legend": "",
                     "legendOffset": 45,
                     "legendPosition": "middle"
                 },
@@ -308,7 +312,7 @@ else:
             "id": label_serie,
             "data": [
                 {"x": row['mois'].strftime('%Y-%m'), "y": int(row['valeur_12m'])}
-                for _, row in df_final.iterrows()
+                for _, row in df_final[df_final['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
             ]
         }
     ]
@@ -327,7 +331,7 @@ else:
                     "tickSize": 5,
                     "tickPadding": 5,
                     "tickRotation": -45,
-                    "legend": "Période",
+                    "legend": "",
                     "legendOffset": 45,
                     "legendPosition": "middle"
                 },
@@ -361,7 +365,7 @@ df_distrib = (
 )
 
 if not df_distrib.empty:
-    _moyenne = df_distrib['nb_users'].mean()
+    _moyenne = int(df_distrib['nb_users'].mean())
     _max = int(df_distrib['nb_users'].max())
 
     if selected_region != "Toutes" and selected_departement == "Tous":
@@ -373,12 +377,12 @@ if not df_distrib.empty:
 
     st.markdown(
         f"{_label_distrib}, les collectivités comptent en moyenne "
-        f"**{_moyenne:.1f} utilisateurs actifs**, allant jusqu'à **{_max} utilisateurs actifs** sur les 12 derniers mois."
+        f"**{_moyenne} utilisateurs actifs**, allant jusqu'à **{_max} utilisateurs actifs** sur les 12 derniers mois."
     )
 
     # Buckets fixes : 1, 2–5, 6–15, 16–30, 31–50, 50+
     _bin_edges = [1, 2, 6, 16, 31, 51, float('inf')]
-    _bin_labels = ["1", "2–5", "6–15", "16–30", "31–50", "50+"]
+    _bin_labels = ["1 utilisateur", "2–5 utilisateurs", "6–15 utilisateurs", "16–30 utilisateurs", "31–50 utilisateurs", "50+ utilisateurs"]
     df_distrib['bucket'] = pd.cut(df_distrib['nb_users'], bins=_bin_edges, right=False, labels=_bin_labels)
     df_hist = (
         df_distrib.groupby('bucket', observed=True)
@@ -410,7 +414,7 @@ if not df_distrib.empty:
                 axisBottom={
                     "tickSize": 5,
                     "tickPadding": 5,
-                    "tickRotation": -35,
+                    "tickRotation": 0,
                     "legend": "Nombre d'utilisateurs actifs par collectivité",
                     "legendPosition": "middle",
                     "legendOffset": 60,
@@ -497,7 +501,7 @@ with col_pap:
                 "id": "Plans d'action",
                 "data": [
                     {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_cumule'])}
-                    for _, row in df_pap_evolution.iterrows()
+                    for _, row in df_pap_evolution[df_pap_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
                 ]
             }
         ]
@@ -516,7 +520,7 @@ with col_pap:
                         "tickSize": 5,
                         "tickPadding": 5,
                         "tickRotation": -45,
-                        "legend": "Période",
+                        "legend": "",
                         "legendOffset": 45,
                         "legendPosition": "middle"
                     },
@@ -584,7 +588,7 @@ with col_fap:
                 "id": "Fiches actions pilotables",
                 "data": [
                     {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_cumule'])}
-                    for _, row in df_fap_evolution.iterrows()
+                    for _, row in df_fap_evolution[df_fap_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
                 ]
             }
         ]
@@ -603,7 +607,7 @@ with col_fap:
                         "tickSize": 5,
                         "tickPadding": 5,
                         "tickRotation": -45,
-                        "legend": "Période",
+                        "legend": "",
                         "legendOffset": 45,
                         "legendPosition": "middle"
                     },
@@ -702,11 +706,11 @@ else:
 st.markdown("---")
 
 if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Indicateurs et Open Data : **{selected_region}**', icon=":material/task:", color="orange")
+    st.badge(f'Indicateurs & Open Data : **{selected_region}**', icon=":material/task:", color="orange")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Indicateurs et Open Data : **{selected_departement}**', icon=":material/task:", color="orange")
+    st.badge(f'Indicateurs & Open Data : **{selected_departement}**', icon=":material/task:", color="orange")
 else:
-    st.badge(f'Indicateurs et Open Data : **Territoire national**', icon=":material/task:", color="orange")
+    st.badge(f'Indicateurs & Open Data : **Territoire national**', icon=":material/task:", color="orange")
 
 df_ind_filtered = df_ind_perso.copy()
 df_ind_filtered['mois'] = pd.to_datetime(df_ind_filtered['mois'])
@@ -738,7 +742,7 @@ else:
             "id": "Indicateurs personnalisés",
             "data": [
                 {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb'])}
-                for _, row in df_ind_evolution.iterrows()
+                for _, row in df_ind_evolution[df_ind_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
             ]
         }
     ]
@@ -757,7 +761,7 @@ else:
                     "tickSize": 5,
                     "tickPadding": 5,
                     "tickRotation": -45,
-                    "legend": "Mois",
+                    "legend": "",
                     "legendOffset": 45,
                     "legendPosition": "middle"
                 },
@@ -775,5 +779,84 @@ else:
                 useMesh=True,
                 enableSlices="x",
                 colors=["#f97316"],
+                theme=theme_actif,
+            )
+
+df_ind_od_filtered = df_ind_od.copy()
+df_ind_od_filtered['mois'] = pd.to_datetime(df_ind_od_filtered['mois'])
+if selected_region != "Toutes":
+    df_ind_od_filtered = df_ind_od_filtered[df_ind_od_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_ind_od_filtered = df_ind_od_filtered[df_ind_od_filtered["departement_name"] == selected_departement]
+
+df_ind_od_evolution = (
+    df_ind_od_filtered.groupby('mois')['nb_values_od_cum']
+    .sum()
+    .reset_index(name='nb')
+    .sort_values('mois')
+)
+
+df_ind_od_producteur_filtered = df_ind_od_producteur.copy()
+if selected_region != "Toutes":
+    df_ind_od_producteur_filtered = df_ind_od_producteur_filtered[df_ind_od_producteur_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_ind_od_producteur_filtered = df_ind_od_producteur_filtered[df_ind_od_producteur_filtered["departement_name"] == selected_departement]
+
+_nb_titres = df_ind_od_producteur_filtered['titre'].nunique()
+_nb_sources = df_ind_od_producteur_filtered['producteur'].nunique()
+
+if df_ind_od_evolution.empty:
+    st.info("Aucune donnée d'indicateurs open data disponible pour les filtres sélectionnés.")
+else:
+    derniere_val_od = f"{int(df_ind_od_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        st.markdown(f"Sur la région **{selected_region}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        st.markdown(f"Sur le département **{selected_departement}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
+    else:
+        st.markdown(f"Sur le **territoire national**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
+
+    ind_od_data = [
+        {
+            "id": "Valeurs indicateurs open data",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb'])}
+                for _, row in df_ind_od_evolution[df_ind_od_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
+            ]
+        }
+    ]
+
+    with elements("area_ind_od"):
+        with mui.Box(sx={"height": 450}):
+            nivo.Line(
+                data=ind_od_data,
+                margin={"top": 20, "right": 30, "bottom": 50, "left": 70},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
+                curve="monotoneX",
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -45,
+                    "legend": "",
+                    "legendOffset": 45,
+                    "legendPosition": "middle"
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                    "legend": "Nb valeurs",
+                    "legendPosition": "middle",
+                    "legendOffset": -60,
+                },
+                enableArea=True,
+                areaOpacity=0.3,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                colors=["#8b5cf6"],
                 theme=theme_actif,
             )
