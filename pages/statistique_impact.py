@@ -84,15 +84,15 @@ with selects[1]:
 # ainsi qu'un total global, pour le territoire sélectionné.
 # ===================================================
 
-st.markdown("*La sélection d'un territoire s'applique à tous les graphes*")
+st.markdown("*La sélection d'un territoire s'applique à toute la page*")
 
 # Badge indiquant le périmètre géographique actif
 if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Activation : **{selected_region}**', icon=":material/trending_up:", color="green")
+    st.badge(f'Profils de collectivités : **{selected_region}**', icon=":material/trending_up:", color="green")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Activation : **{selected_departement}**', icon=":material/trending_up:", color="green")
+    st.badge(f'Profils de collectivités : **{selected_departement}**', icon=":material/trending_up:", color="green")
 else:
-    st.badge(f'Activation : **Territoire national**', icon=":material/trending_up:", color="green")
+    st.badge(f'Profils de collectivités : **Territoire national**', icon=":material/trending_up:", color="green")
 
 # Application des filtres géographiques sur le dataframe principal
 df_ct_actives_selected = df_ct_actives.copy()
@@ -123,11 +123,11 @@ df_ct_actives_selected["date_activation"] = pd.to_datetime(
 # Ligne du total global (affiché en premier, seul sur sa ligne)
 _nb_ct = f"{int(df_ct_actives_selected.shape[0]):,}".replace(",", "\u202f")
 if selected_region == "Toutes" and selected_departement == "Tous":
-    st.markdown(f"Sur le **territoire national**, Territoires en Transitions comptabilise **{_nb_ct} collectivités** ayant créé un profil sur la plateforme.")
+    st.markdown(f"Sur le **territoire national**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 elif selected_region != "Toutes" and selected_departement == "Tous":
-    st.markdown(f"Sur la région **{selected_region}**, Territoires en Transitions comptabilise **{_nb_ct} collectivités** ayant créé un profil sur la plateforme.")
+    st.markdown(f"Sur la région **{selected_region}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"Sur le département **{selected_departement}**, Territoires en Transitions comptabilise **{_nb_ct} collectivités** ayant créé un profil sur la plateforme.")
+    st.markdown(f"Sur le département **{selected_departement}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 
 # Lignes du détail par catégorie (max 6 colonnes par ligne)
 max_cols = 6
@@ -299,7 +299,7 @@ else:
     elif selected_region != "Toutes" and selected_departement != "Tous":
         st.markdown(f"Sur le département **{selected_departement}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
     else:
-        st.markdown(f"Sur le territoire national, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
+        st.markdown(f"Sur le **territoire national**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
 
     area_data_users = [
         {
@@ -336,14 +336,94 @@ else:
                 },
                 enableArea=True,
                 areaOpacity=0.3,
-                enablePoints=True,
-                pointSize=8,
-                pointColor={"theme": "background"},
-                pointBorderWidth=2,
-                pointBorderColor={"from": "serieColor"},
+                enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
                 colors=["#3b82f6"],
+                theme=theme_actif,
+            )
+
+# --- Distribution du nombre d'utilisateurs actifs par collectivité (12 derniers mois glissants) ---
+
+_dernier_mois_glissant = df_users['mois'].max()
+_mask_12m = (
+    (df_users['mois'] <= _dernier_mois_glissant) &
+    (df_users['mois'] > _dernier_mois_glissant - pd.DateOffset(months=12))
+)
+df_users_12m = df_users.loc[_mask_12m]
+
+df_distrib = (
+    df_users_12m.groupby('collectivite_id')['email']
+    .nunique()
+    .reset_index(name='nb_users')
+)
+
+if not df_distrib.empty:
+    _moyenne = df_distrib['nb_users'].mean()
+    _max = int(df_distrib['nb_users'].max())
+
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        _label_distrib = f"Sur la région **{selected_region}**"
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        _label_distrib = f"Sur le département **{selected_departement}**"
+    else:
+        _label_distrib = "Sur le **territoire national**"
+
+    st.markdown(
+        f"{_label_distrib}, les collectivités comptent en moyenne "
+        f"**{_moyenne:.1f} utilisateurs actifs**, allant jusqu'à **{_max} utilisateurs actifs**."
+    )
+
+    # Buckets fixes : 1, 2–5, 6–15, 16–30, 31–50, 50+
+    _bin_edges = [1, 2, 6, 16, 31, 51, float('inf')]
+    _bin_labels = ["1", "2–5", "6–15", "16–30", "31–50", "50+"]
+    df_distrib['bucket'] = pd.cut(df_distrib['nb_users'], bins=_bin_edges, right=False, labels=_bin_labels)
+    df_hist = (
+        df_distrib.groupby('bucket', observed=True)
+        .size()
+        .reset_index(name='nb_ct')
+    )
+    df_hist['label'] = df_hist['bucket'].astype(str)
+
+    hist_data = [
+        {"tranche": row['label'], "Collectivités": int(row['nb_ct'])}
+        for _, row in df_hist.iterrows()
+        if row['label']
+    ]
+
+    with elements("bar_distrib_users"):
+        with mui.Box(sx={"height": 420}):
+            nivo.Bar(
+                data=hist_data,
+                keys=["Collectivités"],
+                indexBy="tranche",
+                margin={"top": 20, "right": 30, "bottom": 70, "left": 60},
+                padding=0.25,
+                valueScale={"type": "linear"},
+                indexScale={"type": "band", "round": True},
+                colors=["#3b82f6"],
+                borderRadius=3,
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -35,
+                    "legend": "Nombre d'utilisateurs actifs par collectivité",
+                    "legendPosition": "middle",
+                    "legendOffset": 60,
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                    "legend": "Nombre de collectivités",
+                    "legendPosition": "middle",
+                    "legendOffset": -50,
+                },
+                labelSkipHeight=12,
+                enableLabel=True,
+                labelTextColor={"from": "color", "modifiers": [["darker", 2]]},
                 theme=theme_actif,
             )
 
@@ -402,12 +482,13 @@ with col_pap:
         st.info("Aucune donnée PAP disponible.")
     else:
         derniere_val_pap = f"{int(df_pap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
+        _help_pap = "Un plan d'action pilotable est un plan d'action qui comprend au moins 5 fiches actions pilotables."
         if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_pap} plans d'actions** pilotables ont été déposés.")
+            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_pap} plans d'actions** pilotables ont été déposés.")
+            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
         else:
-            st.markdown(f"Sur le territoire national, **{derniere_val_pap} plans d'actions** pilotables ont été déposés.")
+            st.markdown(f"Sur le **territoire national**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
 
         pap_data = [
             {
@@ -488,12 +569,13 @@ with col_fap:
         st.info("Aucune donnée FAP disponible.")
     else:
         derniere_val_fap = f"{int(df_fap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
+        _help_fap = "Une fiche action pilotable est une action qui comprend au moins un titre, une description, un statut et une personne pilote."
         if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_fap} fiches actions** pilotables ont été créées.")
+            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_fap} fiches actions** pilotables ont été créées.")
+            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
         else:
-            st.markdown(f"Sur le territoire national, **{derniere_val_fap} fiches actions** pilotables ont été créées.")
+            st.markdown(f"Sur le **territoire national**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
 
         fap_data = [
             {
@@ -563,7 +645,8 @@ else:
         _label_type = f"Sur le département **{selected_departement}**"
     else:
         _label_type = "Sur le **territoire national**"
-    st.markdown(f"{_label_type} : voici les types de plans pilotés sur Territoires en Transitions.")
+    _nb_types = len(df_pap_type_counts)
+    st.markdown(f"{_label_type}, il y a **{_nb_types} types de plans** pilotés sur Territoires en Transitions.")
 
     bar_data_pap_type = [
         {"type": row["nom_plan"], "Nombre": int(row["count"])}
