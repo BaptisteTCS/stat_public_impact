@@ -489,7 +489,7 @@ with col_pap:
         st.info("Aucune donnée PAP disponible.")
     else:
         derniere_val_pap = f"{int(df_pap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
-        _help_pap = "Un plan d'action pilotable est un plan d'action qui comprend au moins 5 fiches actions pilotables."
+        _help_pap = "Un plan d'action pilotable est un plan d'action qui comprend au moins 5 actions pilotables."
         if selected_region != "Toutes" and selected_departement == "Tous":
             st.markdown(f"En région **{selected_region}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
@@ -576,13 +576,13 @@ with col_fap:
         st.info("Aucune donnée FAP disponible.")
     else:
         derniere_val_fap = f"{int(df_fap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
-        _help_fap = "Une fiche action pilotable est une action qui comprend au moins un titre, une description, un statut et une personne pilote."
+        _help_fap = "Une action pilotable est une action qui comprend au moins un titre, une description, un statut et une personne pilote."
         if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"En région **{selected_region}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
+            st.markdown(f"En région **{selected_region}**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"En **{selected_departement}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
+            st.markdown(f"En **{selected_departement}**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
         else:
-            st.markdown(f"Sur le **territoire national**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
+            st.markdown(f"Sur le **territoire national**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
 
         fap_data = [
             {
