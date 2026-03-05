@@ -58,9 +58,10 @@ def load_data():
     df_ind_perso = read_table('evolution_ind_pers')
     df_ind_od = read_table('evolution_ind_od')
     df_ind_od_producteur = read_table('ind_od_producteur_indicateur')
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur
+    df_labellisation = read_table('labellisation_region')
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation = load_data()
 
 
 # ===================================================
@@ -130,9 +131,9 @@ _nb_ct = f"{int(df_ct_actives_selected.shape[0]):,}".replace(",", "\u202f")
 if selected_region == "Toutes" and selected_departement == "Tous":
     st.markdown(f"Sur le **territoire national**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 elif selected_region != "Toutes" and selected_departement == "Tous":
-    st.markdown(f"Sur la région **{selected_region}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
+    st.markdown(f"En région **{selected_region}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"Sur le département **{selected_departement}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
+    st.markdown(f"En **{selected_departement}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
 
 # Lignes du détail par catégorie (max 6 colonnes par ligne)
 max_cols = 6
@@ -301,9 +302,9 @@ else:
     dernier_mois = df_final['mois'].iloc[-1].strftime('%B %Y')
 
     if selected_region != "Toutes" and selected_departement == "Tous":
-        st.markdown(f"Sur la région **{selected_region}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
+        st.markdown(f"En région **{selected_region}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        st.markdown(f"Sur le département **{selected_departement}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
+        st.markdown(f"En **{selected_departement}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
     else:
         st.markdown(f"Sur le **territoire national**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** sur les 12 derniers mois.")
 
@@ -369,9 +370,9 @@ if not df_distrib.empty:
     _max = int(df_distrib['nb_users'].max())
 
     if selected_region != "Toutes" and selected_departement == "Tous":
-        _label_distrib = f"Sur la région **{selected_region}**"
+        _label_distrib = f"En région **{selected_region}**"
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        _label_distrib = f"Sur le département **{selected_departement}**"
+        _label_distrib = f"En **{selected_departement}**"
     else:
         _label_distrib = "Sur le **territoire national**"
 
@@ -490,9 +491,9 @@ with col_pap:
         derniere_val_pap = f"{int(df_pap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
         _help_pap = "Un plan d'action pilotable est un plan d'action qui comprend au moins 5 fiches actions pilotables."
         if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
+            st.markdown(f"En région **{selected_region}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
+            st.markdown(f"En **{selected_departement}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
         else:
             st.markdown(f"Sur le **territoire national**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
 
@@ -577,9 +578,9 @@ with col_fap:
         derniere_val_fap = f"{int(df_fap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
         _help_fap = "Une fiche action pilotable est une action qui comprend au moins un titre, une description, un statut et une personne pilote."
         if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
+            st.markdown(f"En région **{selected_region}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
         elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
+            st.markdown(f"En **{selected_departement}**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
         else:
             st.markdown(f"Sur le **territoire national**, **{derniere_val_fap} fiches actions pilotables** ont été créées.", help=_help_fap)
 
@@ -646,9 +647,9 @@ if df_pap_type_counts.empty:
     st.info("Aucune donnée de type de plan d'action disponible.")
 else:
     if selected_region != "Toutes" and selected_departement == "Tous":
-        _label_type = f"Sur la région **{selected_region}**"
+        _label_type = f"En région **{selected_region}**"
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        _label_type = f"Sur le département **{selected_departement}**"
+        _label_type = f"En **{selected_departement}**"
     else:
         _label_type = "Sur le **territoire national**"
     _nb_types = len(df_pap_type_counts)
@@ -731,9 +732,9 @@ if df_ind_evolution.empty:
 else:
     derniere_val_ind = f"{int(df_ind_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
     if selected_region != "Toutes" and selected_departement == "Tous":
-        st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
+        st.markdown(f"En région **{selected_region}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
+        st.markdown(f"En **{selected_departement}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
     else:
         st.markdown(f"Sur le **territoire national**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
 
@@ -810,9 +811,9 @@ if df_ind_od_evolution.empty:
 else:
     derniere_val_od = f"{int(df_ind_od_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
     if selected_region != "Toutes" and selected_departement == "Tous":
-        st.markdown(f"Sur la région **{selected_region}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
+        st.markdown(f"En région **{selected_region}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        st.markdown(f"Sur le département **{selected_departement}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
+        st.markdown(f"En **{selected_departement}**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
     else:
         st.markdown(f"Sur le **territoire national**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
 
@@ -858,5 +859,172 @@ else:
                 useMesh=True,
                 enableSlices="x",
                 colors=["#8b5cf6"],
+                theme=theme_actif,
+            )
+
+
+# ===================================================
+# === Section 6 : Labellisation ===================
+# ===================================================
+
+st.markdown("---")
+
+if selected_region != "Toutes" and selected_departement == "Tous":
+    st.badge(f'Labellisation : **{selected_region}**', icon=":material/task:", color="orange")
+elif selected_region != "Toutes" and selected_departement != "Tous":
+    st.badge(f'Labellisation : **{selected_departement}**', icon=":material/task:", color="orange")
+else:
+    st.badge(f'Labellisation : **Territoire national**', icon=":material/task:", color="orange")
+
+df_label_filtered = df_labellisation.copy()
+if selected_region != "Toutes":
+    df_label_filtered = df_label_filtered[df_label_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_label_filtered = df_label_filtered[df_label_filtered["departement_name"] == selected_departement]
+
+# Pour chaque collectivité × référentiel, ne garder que la labellisation la plus récente
+df_label_latest = (
+    df_label_filtered.sort_values("obtenue_le")
+    .groupby(["collectivite_id", "referentiel"], as_index=False)
+    .last()
+)
+
+_couleurs_etoiles = {
+    1: "#fde68a",
+    2: "#fbbf24",
+    3: "#f59e0b",
+    4: "#d97706",
+    5: "#92400e",
+}
+
+col_cae, col_eci = st.columns(2)
+
+for col_graph, ref_code, ref_label in [
+    (col_cae, "cae", "Climat Air Énergie"),
+    (col_eci, "eci", "Économie Circulaire"),
+]:
+    with col_graph:
+        df_ref = df_label_latest[df_label_latest["referentiel"] == ref_code]
+        df_counts = (
+            df_ref.groupby("etoiles")["collectivite_id"]
+            .nunique()
+            .reset_index(name="nb")
+            .sort_values("etoiles")
+        )
+
+        if df_counts.empty:
+            st.info(f"Aucune labellisation {ref_label} disponible pour les filtres sélectionnés.")
+        else:
+            _total_ref = int(df_counts["nb"].sum())
+            _total_fmt = f"{_total_ref:,}".replace(",", "\u202f")
+            _nb_4plus = int(df_counts[df_counts["etoiles"] >= 4]["nb"].sum())
+            _nb_4plus_fmt = f"{_nb_4plus:,}".replace(",", "\u202f")
+            st.markdown(f"**{ref_label}** : **{_total_fmt} collectivités** labellisées dont **{_nb_4plus_fmt}** avec 4 étoiles ou plus.")
+
+            donut_data = [
+                {
+                    "id": f"{'⭐' * int(row['etoiles'])}",
+                    "label": f"{int(row['etoiles'])} étoile{'s' if row['etoiles'] > 1 else ''}",
+                    "value": int(row["nb"]),
+                    "color": _couleurs_etoiles.get(int(row["etoiles"]), "#e5e7eb"),
+                }
+                for _, row in df_counts.iterrows()
+            ]
+
+            with elements(f"donut_label_{ref_code}"):
+                with mui.Box(sx={"height": 450}):
+                    nivo.Pie(
+                        data=donut_data,
+                        margin={"top": 30, "right": 120, "bottom": 30, "left": 120},
+                        innerRadius=0.55,
+                        padAngle=1.5,
+                        cornerRadius=4,
+                        activeOuterRadiusOffset=8,
+                        colors={"datum": "data.color"},
+                        arcLinkLabelsSkipAngle=10,
+                        arcLinkLabelsTextColor="#31333F",
+                        arcLinkLabelsThickness=2,
+                        arcLinkLabelsColor={"from": "color"},
+                        arcLabelsSkipAngle=15,
+                        arcLabelsTextColor={"from": "color", "modifiers": [["darker", 2]]},
+                        legends=[],
+                        theme=theme_actif,
+                    )
+
+df_label_all = df_labellisation.copy()
+df_label_all['obtenue_le'] = pd.to_datetime(df_label_all['obtenue_le'])
+if selected_region != "Toutes":
+    df_label_all = df_label_all[df_label_all["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_label_all = df_label_all[df_label_all["departement_name"] == selected_departement]
+
+df_label_all['mois'] = df_label_all['obtenue_le'].dt.to_period('M').dt.to_timestamp()
+df_label_evol = df_label_all.groupby('mois').size().reset_index(name='nb').sort_values('mois')
+df_label_evol['nb_cumule'] = df_label_evol['nb'].cumsum()
+
+if not df_label_evol.empty:
+    all_months_label = pd.date_range(
+        df_label_evol['mois'].min(),
+        df_label_evol['mois'].max(),
+        freq='MS'
+    )
+    df_label_evol = (
+        df_label_evol.set_index('mois')
+        .reindex(all_months_label)
+        .rename_axis('mois')
+        .reset_index()
+    )
+    df_label_evol['nb_cumule'] = df_label_evol['nb_cumule'].ffill().fillna(0).astype(int)
+
+    derniere_val_label = f"{int(df_label_evol['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        st.markdown(f"En région **{selected_region}**, **{derniere_val_label} labellisations** ont été obtenues au total.")
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        st.markdown(f"En **{selected_departement}**, **{derniere_val_label} labellisations** ont été obtenues au total.")
+    else:
+        st.markdown(f"Sur le **territoire national**, **{derniere_val_label} labellisations** ont été obtenues au total.")
+
+    label_evol_data = [
+        {
+            "id": "Labellisations",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_cumule'])}
+                for _, row in df_label_evol[df_label_evol['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
+            ]
+        }
+    ]
+
+    with elements("area_label_evol"):
+        with mui.Box(sx={"height": 450}):
+            nivo.Line(
+                data=label_evol_data,
+                margin={"top": 20, "right": 30, "bottom": 50, "left": 70},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
+                curve="monotoneX",
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -45,
+                    "legend": "",
+                    "legendOffset": 45,
+                    "legendPosition": "middle"
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                    "legend": "Nb labellisations",
+                    "legendPosition": "middle",
+                    "legendOffset": -60,
+                },
+                enableArea=True,
+                areaOpacity=0.3,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                colors=["#f59e0b"],
                 theme=theme_actif,
             )
