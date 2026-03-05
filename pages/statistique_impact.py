@@ -50,13 +50,13 @@ theme_actif = {
 @st.cache_resource(ttl="2d")
 def load_data():
     df_ct_actives = read_table('ct_actives')
-    df_ct_niveau = read_table('ct_niveau')
     df_ct_users_actifs = read_table('user_actifs_ct_mois')
     df_pap = read_table('passage_pap_region')
     df_fap = read_table('evolution_fa_region')
-    return df_ct_actives, df_ct_niveau, df_ct_users_actifs, df_fap, df_pap
+    df_ind_perso = read_table('evolution_ind_pers')
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso
 
-df_ct_actives, df_ct_niveau, df_ct_users_actifs, df_fap, df_pap = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso = load_data()
 
 
 # ===================================================
@@ -85,6 +85,7 @@ with selects[1]:
 # ===================================================
 
 st.markdown("*La sélection d'un territoire s'applique à toute la page*")
+st.markdown("---")
 
 # Badge indiquant le périmètre géographique actif
 if selected_region != "Toutes" and selected_departement == "Tous":
@@ -240,6 +241,7 @@ else:
 # Graphique en aire montrant le nombre d'utilisateurs ou de collectivités
 # uniques ayant été actifs au cours des 12 derniers mois, mois par mois.
 # ===================================================
+st.markdown("---")
 
 if selected_region != "Toutes" and selected_departement == "Tous":
     st.badge(f'Activité : **{selected_region}**', icon=":material/bolt:", color="green")
@@ -371,7 +373,7 @@ if not df_distrib.empty:
 
     st.markdown(
         f"{_label_distrib}, les collectivités comptent en moyenne "
-        f"**{_moyenne:.1f} utilisateurs actifs**, allant jusqu'à **{_max} utilisateurs actifs**."
+        f"**{_moyenne:.1f} utilisateurs actifs**, allant jusqu'à **{_max} utilisateurs actifs** sur les 12 derniers mois."
     )
 
     # Buckets fixes : 1, 2–5, 6–15, 16–30, 31–50, 50+
@@ -687,5 +689,91 @@ else:
                 labelSkipHeight=12,
                 labelTextColor={"from": "color", "modifiers": [["darker", 2]]},
                 enableLabel=True,
+                theme=theme_actif,
+            )
+
+
+
+
+# ===================================================
+# === Section 5 : indicateurs et OD =================
+# ===================================================
+
+st.markdown("---")
+
+if selected_region != "Toutes" and selected_departement == "Tous":
+    st.badge(f'Indicateurs et Open Data : **{selected_region}**', icon=":material/task:", color="orange")
+elif selected_region != "Toutes" and selected_departement != "Tous":
+    st.badge(f'Indicateurs et Open Data : **{selected_departement}**', icon=":material/task:", color="orange")
+else:
+    st.badge(f'Indicateurs et Open Data : **Territoire national**', icon=":material/task:", color="orange")
+
+df_ind_filtered = df_ind_perso.copy()
+df_ind_filtered['mois'] = pd.to_datetime(df_ind_filtered['mois'])
+if selected_region != "Toutes":
+    df_ind_filtered = df_ind_filtered[df_ind_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_ind_filtered = df_ind_filtered[df_ind_filtered["departement_name"] == selected_departement]
+
+df_ind_evolution = (
+    df_ind_filtered.groupby('mois')['nb_ind_perso']
+    .sum()
+    .reset_index(name='nb')
+    .sort_values('mois')
+)
+
+if df_ind_evolution.empty:
+    st.info("Aucune donnée d'indicateurs disponible pour les filtres sélectionnés.")
+else:
+    derniere_val_ind = f"{int(df_ind_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        st.markdown(f"Sur la région **{selected_region}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        st.markdown(f"Sur le département **{selected_departement}**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
+    else:
+        st.markdown(f"Sur le **territoire national**, **{derniere_val_ind} indicateurs personnalisés** ont été créés.")
+
+    ind_data = [
+        {
+            "id": "Indicateurs personnalisés",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb'])}
+                for _, row in df_ind_evolution.iterrows()
+            ]
+        }
+    ]
+
+    with elements("area_ind_perso"):
+        with mui.Box(sx={"height": 450}):
+            nivo.Line(
+                data=ind_data,
+                margin={"top": 20, "right": 30, "bottom": 50, "left": 70},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
+                curve="monotoneX",
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -45,
+                    "legend": "Mois",
+                    "legendOffset": 45,
+                    "legendPosition": "middle"
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                    "legend": "Nb indicateurs",
+                    "legendPosition": "middle",
+                    "legendOffset": -60,
+                },
+                enableArea=True,
+                areaOpacity=0.3,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                colors=["#f97316"],
                 theme=theme_actif,
             )
