@@ -1,5 +1,10 @@
+import os
+
 import streamlit as st
+import numpy as np
 import pandas as pd
+import geopandas as gpd
+import plotly.express as px
 from streamlit_elements import elements, nivo, mui
 
 st.set_page_config(layout="wide")
@@ -43,6 +48,16 @@ theme_actif = {
 DATE_DEBUT_GRAPHES = pd.Timestamp("2024-01-01")
 
 
+def geo_badge(selected_region, selected_departement, text, icon, color):
+    if selected_region != "Toutes" and selected_departement != "Tous":
+        label = selected_departement
+    elif selected_region != "Toutes":
+        label = selected_region
+    else:
+        label = "Territoire national"
+    st.badge(f'{text} : **{label}**', icon=icon, color=color)
+
+
 # ===================================================
 # DONNÉES : Chargement depuis la base de données
 # Les données sont mises en cache pendant 2 jours
@@ -51,7 +66,8 @@ DATE_DEBUT_GRAPHES = pd.Timestamp("2024-01-01")
 
 @st.cache_resource(ttl="2d")
 def load_data():
-    df_ct_actives = read_table('ct_actives')
+    df_collectivite = read_table('collectivite', where_sql="type_collectivite='EPCI' and nature_collectivite not in ('POLEM', 'PETR', 'SIVU', 'SIVOM', 'SMF', 'SMO')")
+    df_ct_actives = read_table('ct_actives') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Date activation
     df_ct_users_actifs = read_table('user_actifs_ct_mois')
     df_pap = read_table('passage_pap_region')
     df_fap = read_table('evolution_fa_region')
@@ -59,9 +75,13 @@ def load_data():
     df_ind_od = read_table('evolution_ind_od')
     df_ind_od_producteur = read_table('ind_od_producteur_indicateur')
     df_labellisation = read_table('labellisation_region')
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite = load_data()
+
+df_collectivite = df_collectivite[
+    ~df_collectivite['nom'].str.contains('SM|PETR|Syndicat', case=False, na=False)
+]
 
 
 # ===================================================
@@ -92,13 +112,7 @@ with selects[1]:
 st.markdown("*La sélection d'un territoire s'applique à toute la page.*")
 st.markdown("---")
 
-# Badge indiquant le périmètre géographique actif
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Profils de collectivités : **{selected_region}**', icon=":material/trending_up:", color="green")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Profils de collectivités : **{selected_departement}**', icon=":material/trending_up:", color="green")
-else:
-    st.badge(f'Profils de collectivités : **Territoire national**', icon=":material/trending_up:", color="green")
+st.markdown("## Déployer la transition écologique sur la totalité du territoire.")
 
 # Application des filtres géographiques sur le dataframe principal
 df_ct_actives_selected = df_ct_actives.copy()
@@ -107,16 +121,6 @@ if selected_region != "Toutes":
 if selected_departement != "Tous":
     df_ct_actives_selected = df_ct_actives_selected[df_ct_actives_selected["departement_name"] == selected_departement]
 
-# Ordre d'affichage souhaité pour les catégories
-ordre_prioritaire = ["EPCI", "Syndicats", "PETR", "Communes"]
-
-cats = sorted(
-    df_ct_actives_selected["categorie"].dropna().unique(),
-    key=lambda c: ordre_prioritaire.index(c)
-    if c in ordre_prioritaire
-    else len(ordre_prioritaire)
-)
-
 # Conversion de la date d'activation en datetime sans timezone
 df_ct_actives_selected["date_activation"] = pd.to_datetime(
     df_ct_actives_selected["date_activation"],
@@ -124,16 +128,48 @@ df_ct_actives_selected["date_activation"] = pd.to_datetime(
     utc=False
 ).dt.tz_localize(None)
 
+# Filtrage : collectivités actives sur les 24 derniers mois
+_now = pd.Timestamp.now().normalize()
+_date_24m = _now - pd.DateOffset(months=24)
+
+df_users_actifs_geo = df_ct_users_actifs.copy()
+df_users_actifs_geo['mois'] = pd.to_datetime(df_users_actifs_geo['mois'])
+if selected_region != "Toutes":
+    df_users_actifs_geo = df_users_actifs_geo[df_users_actifs_geo["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_users_actifs_geo = df_users_actifs_geo[df_users_actifs_geo["departement_name"] == selected_departement]
+
+ids_actifs_24m = set(
+    df_users_actifs_geo[df_users_actifs_geo['mois'] >= _date_24m]['collectivite_id'].unique()
+)
+
+df_ct_actives_graphe = df_ct_actives_selected[
+    df_ct_actives_selected['collectivite_id'].isin(ids_actifs_24m)
+].copy()
+
+# Ordre d'affichage souhaité pour les catégories
+ordre_prioritaire = ["EPCI", "Communes", "Syndicats", "Communes"]
+
+cats = sorted(
+    df_ct_actives_graphe["categorie"].dropna().unique(),
+    key=lambda c: ordre_prioritaire.index(c)
+    if c in ordre_prioritaire
+    else len(ordre_prioritaire)
+)
+
 # --- Affichage des métriques : Total global + détail par catégorie ---
 
 # Ligne du total global (affiché en premier, seul sur sa ligne)
-_nb_ct = f"{int(df_ct_actives_selected.shape[0]):,}".replace(",", "\u202f")
+_nb_ct = f"{int(df_ct_actives_graphe.shape[0]):,}".replace(",", "\u202f")
 if selected_region == "Toutes" and selected_departement == "Tous":
-    st.markdown(f"Sur le **territoire national**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
+    st.markdown(f"Sur le **territoire national**, **{_nb_ct} collectivités** ont créé un compte sur Territoires en Transitions avec au moins une connexion sur les 24 derniers mois.", help="Les statistiques suivantes présentent le nombre de collectivités ayant créé un compte sur la plateforme. Une collectivité est considérée comme ayant créé un compte lorsqu’au moins une personne utilisatrice active est rattachée à cette collectivité sur la plateforme.")
 elif selected_region != "Toutes" and selected_departement == "Tous":
-    st.markdown(f"En région **{selected_region}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
+    st.markdown(f"En région **{selected_region}**, **{_nb_ct} collectivités** ont créé un compte sur Territoires en Transitions avec au moins une connexion sur les 24 derniers mois.", help="Les statistiques suivantes présentent le nombre de collectivités ayant créé un compte sur la plateforme. Une collectivité est considérée comme ayant créé un compte lorsqu’au moins une personne utilisatrice active est rattachée à cette collectivité sur la plateforme.")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"En **{selected_departement}**, **{_nb_ct} collectivités** ont créé un profil sur Territoires en Transitions.")
+    st.markdown(f"En **{selected_departement}**, **{_nb_ct} collectivités** ont créé un compte sur Territoires en Transitions avec au moins une connexion sur les 24 derniers mois.", help="Les statistiques suivantes présentent le nombre de collectivités ayant créé un compte sur la plateforme. Une collectivité est considérée comme ayant créé un compte lorsqu’au moins une personne utilisatrice active est rattachée à cette collectivité sur la plateforme.")
+
+# Badge indiquant le périmètre géographique actif
+geo_badge(selected_region, selected_departement, "Nombre de collectivités ayant créé un compte sur la plateforme", icon=":material/trending_up:", color="green")
 
 # Lignes du détail par catégorie (max 6 colonnes par ligne)
 max_cols = 6
@@ -143,7 +179,7 @@ for row_start in range(0, len(cats), max_cols):
 
     for col, cat in zip(cols, row_cats):
         with col:
-            df_cat = df_ct_actives_selected[df_ct_actives_selected["categorie"] == cat]
+            df_cat = df_ct_actives_graphe[df_ct_actives_graphe["categorie"] == cat]
             st.metric(cat, int(df_cat.shape[0]))
 
 # ===================================================
@@ -152,13 +188,17 @@ for row_start in range(0, len(cats), max_cols):
 # mensuelle du nombre de collectivités activées.
 # ===================================================
 
+_date_3y = _now - pd.DateOffset(years=3)
+
 # Calcul du nombre cumulé d'activations par mois et par catégorie
-df_ct_actives_selected['mois'] = df_ct_actives_selected['date_activation'].dt.to_period('M')
-df_evolution = df_ct_actives_selected.groupby(['mois', 'categorie']).size().reset_index(name='nb_ct')
+df_ct_actives_graphe['mois'] = df_ct_actives_graphe['date_activation'].dt.to_period('M')
+df_evolution = df_ct_actives_graphe.groupby(['mois', 'categorie']).size().reset_index(name='nb_ct')
 df_evolution['nb_ct_cumule'] = df_evolution.groupby('categorie')['nb_ct'].cumsum()
 
-all_mois = sorted(df_ct_actives_selected['mois'].dropna().unique())
-all_categories = df_ct_actives_selected['categorie'].dropna().unique()
+all_mois = sorted(df_ct_actives_graphe['mois'].dropna().unique())
+all_categories = df_ct_actives_graphe['categorie'].dropna().unique()
+
+_period_3y = pd.Period(_date_3y, 'M')
 
 if len(all_mois) == 0:
     st.info("Aucune donnée disponible pour les filtres sélectionnés.")
@@ -176,6 +216,7 @@ else:
     # Construction des séries pour Nivo Line :
     # on bouche les trous temporels avec un forward-fill (valeur précédente)
     # afin d'obtenir une courbe cumulative continue.
+    # L'affichage est limité aux 3 dernières années pour la lisibilité.
     area_data_ct_evolution = []
     for cat in categories_triees:
         df_filtered = df_evolution[df_evolution['categorie'] == cat].copy()
@@ -188,7 +229,7 @@ else:
                 "id": cat,
                 "data": [
                     {"x": str(row['mois']), "y": row['nb_ct_cumule']}
-                    for _, row in df_complete.iterrows()
+                    for _, row in df_complete[df_complete['mois'] >= _period_3y].iterrows()
                 ]
             })
 
@@ -240,6 +281,188 @@ else:
                 theme=theme_actif,
             )
 
+# ===================================================
+# CARTE : Couverture des EPCI sur la plateforme
+# Vue filtrée par région/département.
+# Périmètre : EPCIs présents dans df_collectivite (filtre nature_insee déjà appliqué en SQL).
+# ===================================================
+
+@st.cache_data(show_spinner=False)
+def _load_gdf_epci():
+    path = os.path.join(os.path.dirname(__file__), '..', 'epcis_2023_collection.json')
+    gdf = gpd.read_file(path)
+    gdf = gdf.to_crs(epsg=4326)
+    gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.001)
+    return gdf
+
+gdf_epci = _load_gdf_epci()
+
+
+
+# Jointure avec df_collectivite pour enrichir avec region_name / departement_name
+gdf_epci['siren'] = gdf_epci['siren'].astype(str).str.strip()
+df_collectivite['code_siren_insee'] = df_collectivite['code_siren_insee'].astype(str).str.strip()
+
+gdf_epci = gdf_epci.merge(
+    df_collectivite[['code_siren_insee', 'region_name', 'departement_name']].drop_duplicates(),
+    left_on='siren', right_on='code_siren_insee', how='inner',
+)
+
+# Filtres géographiques
+if selected_region != "Toutes":
+    gdf_epci = gdf_epci[gdf_epci["region_name"] == selected_region]
+if selected_departement != "Tous":
+    gdf_epci = gdf_epci[gdf_epci["departement_name"] == selected_departement]
+
+# Déterminer quels EPCI ont un profil TET
+_sirens_avec_profil = set(
+    df_ct_actives[df_ct_actives['categorie'] == 'EPCI']['siren'].dropna().astype(str)
+) if 'siren' in df_ct_actives.columns else set()
+
+df_pap_geo = df_pap.copy()
+if selected_region != "Toutes":
+    df_pap_geo = df_pap_geo[df_pap_geo["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_pap_geo = df_pap_geo[df_pap_geo["departement_name"] == selected_departement]
+_ct_ids_avec_pap = set(df_pap_geo['collectivite_id'].unique())
+
+_sirens_avec_pap = set(
+    df_ct_actives[
+        (df_ct_actives['categorie'] == 'EPCI')
+        & (df_ct_actives['collectivite_id'].isin(_ct_ids_avec_pap))
+    ]['siren'].dropna().astype(str)
+)
+
+_STATUT_PAP = "Profil + Plan d'action pilotable"
+_STATUT_PROFIL = "Profil seul"
+_STATUT_SANS = "Sans profil"
+_STATUT_ORDER = [_STATUT_PAP, _STATUT_PROFIL, _STATUT_SANS]
+_COLOR_MAP = {
+    _STATUT_PAP:    "#22c55e",
+    _STATUT_PROFIL: "#93c5fd",
+    _STATUT_SANS:   "#cbd5e1",
+}
+
+def _statut_epci(siren):
+    if siren in _sirens_avec_pap:
+        return _STATUT_PAP
+    if siren in _sirens_avec_profil:
+        return _STATUT_PROFIL
+    return _STATUT_SANS
+
+gdf_epci['statut'] = gdf_epci['siren'].apply(_statut_epci)
+
+if gdf_epci.empty:
+    st.info("Aucune donnée EPCI disponible pour la carte.")
+else:
+    _col_carte, _col_waffle = st.columns([2, 1])
+
+    with _col_carte:
+
+        geo_badge(selected_region, selected_departement, "Carte des EPCI actives", icon=":material/map:", color="green")
+
+        _nb_pap = int((gdf_epci['statut'] == _STATUT_PAP).sum())
+        _nb_profil = int((gdf_epci['statut'] == _STATUT_PROFIL).sum())
+        _nb_sans = int((gdf_epci['statut'] == _STATUT_SANS).sum())
+        _total_carte = _nb_pap + _nb_profil + _nb_sans
+        _nb_avec = _nb_pap + _nb_profil
+        _pct = round(_nb_avec / _total_carte * 100) if _total_carte else 0
+        _total_fmt = f"{_total_carte:,}".replace(",", "\u202f")
+        _avec_fmt = f"{_nb_avec:,}".replace(",", "\u202f")
+        st.markdown(
+            f"Sur **{_total_fmt}** EPCI hors syndicats, **{_avec_fmt}** ({_pct} %) "
+            "ont créé un profil sur Territoires en Transitions."
+        )
+
+        
+    
+        _bounds = gdf_epci.total_bounds  # [minx, miny, maxx, maxy]
+        _center = {"lat": (_bounds[1] + _bounds[3]) / 2, "lon": (_bounds[0] + _bounds[2]) / 2}
+        _span = max(_bounds[2] - _bounds[0], _bounds[3] - _bounds[1])
+        if _span < 1:
+            _zoom = 8
+        elif _span < 3:
+            _zoom = 6.5
+        elif _span < 6:
+            _zoom = 5.5
+        else:
+            _zoom = 4.6
+
+        _fig_carte = px.choropleth_mapbox(
+            gdf_epci,
+            geojson=gdf_epci.geometry,
+            locations=gdf_epci.index,
+            color='statut',
+            color_discrete_map=_COLOR_MAP,
+            mapbox_style='carto-positron',
+            zoom=_zoom,
+            center=_center,
+            opacity=0.75,
+            hover_name='nom',
+            hover_data={'statut': True},
+            labels={'statut': ''},
+            category_orders={'statut': _STATUT_ORDER},
+        )
+        _fig_carte.update_traces(marker_line_width=0.3, marker_line_color='white')
+        _fig_carte.update_layout(
+            margin={"r": 0, "t": 0, "l": 0, "b": 0},
+            height=600,
+            showlegend=False,
+        )
+        st.plotly_chart(_fig_carte, use_container_width=True)
+
+    with _col_waffle:
+        geo_badge(selected_region, selected_departement, "Progression de l'activation des EPCI", icon=":material/bolt:", color="green")
+
+        st.markdown('blabla')
+
+        if _total_carte > 0:
+            total_cells = 100
+            cells_avec_pap = int(np.round(_nb_pap / _total_carte * total_cells))
+            cells_avec_profil = int(np.round(_nb_profil / _total_carte * total_cells))
+            cells_sans_profil = total_cells - cells_avec_pap - cells_avec_profil
+
+            _nb_pap_fmt = f"{_nb_pap:,}".replace(",", "\u202f")
+            _nb_profil_fmt = f"{_nb_profil:,}".replace(",", "\u202f")
+            _nb_sans_fmt = f"{_nb_sans:,}".replace(",", "\u202f")
+
+            waffle_data = [
+                {"id": _STATUT_PAP, "label": _STATUT_PAP, "value": cells_avec_pap},
+                {"id": _STATUT_PROFIL, "label": _STATUT_PROFIL, "value": cells_avec_profil},
+                {"id": _STATUT_SANS, "label": _STATUT_SANS, "value": cells_sans_profil},
+            ]
+
+            with elements("waffle_epci"):
+                with mui.Box(sx={"height": 450}):
+                    nivo.Waffle(
+                        data=waffle_data,
+                        total=100,
+                        rows=10,
+                        columns=10,
+                        padding=1,
+                        colors=[_COLOR_MAP[s] for s in _STATUT_ORDER],
+                        borderRadius="10px",
+                        animate=True,
+                        motionStiffness=90,
+                        motionDamping=11,
+                        legends=[],
+                        theme=theme_actif,
+                    )
+
+            for _statut, _count_fmt, _color in [
+                (_STATUT_PAP, _nb_pap_fmt, _COLOR_MAP[_STATUT_PAP]),
+                (_STATUT_PROFIL, _nb_profil_fmt, _COLOR_MAP[_STATUT_PROFIL]),
+                (_STATUT_SANS, _nb_sans_fmt, _COLOR_MAP[_STATUT_SANS]),
+            ]:
+                st.markdown(
+                    f'<span style="display:inline-block;width:12px;height:12px;border-radius:2px;'
+                    f'background:{_color};margin-right:8px;vertical-align:middle"></span>'
+                    f'{_statut} : **{_count_fmt}**',
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Aucune donnée EPCI disponible.")
+
 
 # ===================================================
 # SECTION 3 : Évolution de l'activité (glissant 12 mois)
@@ -248,12 +471,7 @@ else:
 # ===================================================
 st.markdown("---")
 
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Activité : **{selected_region}**', icon=":material/bolt:", color="green")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Activité : **{selected_departement}**', icon=":material/bolt:", color="green")
-else:
-    st.badge(f'Activité : **Territoire national**', icon=":material/bolt:", color="green")
+geo_badge(selected_region, selected_departement, "Activité", icon=":material/bolt:", color="green")
 
 # Segmented control : choix du mode d'affichage
 segment_activite = st.segmented_control(
@@ -443,12 +661,7 @@ if not df_distrib.empty:
 
 st.markdown("---")
 
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Plans & Fiches actions : **{selected_region}**', icon=":material/task:", color="blue")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Plans & Fiches actions : **{selected_departement}**', icon=":material/task:", color="blue")
-else:
-    st.badge(f'Plans & Fiches actions : **Territoire national**', icon=":material/task:", color="blue")
+geo_badge(selected_region, selected_departement, "Plans & Fiches actions", icon=":material/task:", color="blue")
 
 col_pap, col_fap = st.columns(2)
 
@@ -706,12 +919,7 @@ else:
 
 st.markdown("---")
 
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Indicateurs & Open Data : **{selected_region}**', icon=":material/task:", color="orange")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Indicateurs & Open Data : **{selected_departement}**', icon=":material/task:", color="orange")
-else:
-    st.badge(f'Indicateurs & Open Data : **Territoire national**', icon=":material/task:", color="orange")
+geo_badge(selected_region, selected_departement, "Indicateurs & Open Data", icon=":material/task:", color="orange")
 
 df_ind_filtered = df_ind_perso.copy()
 df_ind_filtered['mois'] = pd.to_datetime(df_ind_filtered['mois'])
@@ -869,12 +1077,7 @@ else:
 
 st.markdown("---")
 
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.badge(f'Labellisation : **{selected_region}**', icon=":material/task:", color="orange")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.badge(f'Labellisation : **{selected_departement}**', icon=":material/task:", color="orange")
-else:
-    st.badge(f'Labellisation : **Territoire national**', icon=":material/task:", color="orange")
+geo_badge(selected_region, selected_departement, "Labellisation", icon=":material/task:", color="orange")
 
 df_label_filtered = df_labellisation.copy()
 if selected_region != "Toutes":
