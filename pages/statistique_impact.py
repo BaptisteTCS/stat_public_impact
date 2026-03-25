@@ -74,7 +74,7 @@ def load_data():
     df_ct_actives = read_table('ct_actives') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Date activation
     df_ct_users_actifs = read_table('user_actifs_ct_mois') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - User actifs
     df_activite_semaine = read_table('activite_semaine') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/Dz9DmMwquBQiWTJN0JKlCn/ - L-2
-    df_pap = read_table('passage_pap_region')
+    df_pap = read_table('passage_pap_region') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - evolution pap region
     df_fap = read_table('evolution_fa_region')
     df_ind_perso = read_table('evolution_ind_pers')
     df_ind_od = read_table('evolution_ind_od')
@@ -82,9 +82,11 @@ def load_data():
     df_labellisation = read_table('labellisation_region')
     df_completude = read_table('completude_region') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Completude region
     df_plans_distrib = read_table('plan_distrib')
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib
+    df_pap_52 = read_table('pap_statut_5_fiches_modifiees_52_semaines')
+    df_fa_distrib = read_table('fa_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - FA disrib
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib 
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib = load_data()
 
 df_collectivite = df_collectivite[
     ~df_collectivite['nom'].str.contains('SM|PETR|Syndicat', case=False, na=False)
@@ -857,14 +859,14 @@ else:
 
 st.markdown(
     f"{_label_plans}, **{_nb_plans_total_fmt} plans d'actions** ont été créés sur Territoires en Transitions, "
-    f"dont **{_nb_plans_actifs_fmt}** plans d'actions pilotables actifs sur les 12 derniers mois "
-    f"et **{_nb_plans_score_fmt}** avec une note de qualité supérieure à 5/10."
+    f"dont **{_nb_plans_actifs_fmt}** plans d'actions pilotables actifs "
+    f"et **{_nb_plans_score_fmt}** avec une note de qualité supérieure à 5/10.", help="Un plan d'action est comptabilisé dès lors qu'il a au moins 10 fiches actions. Un plan d'action pilotable actif est un plan d'action avec au moins 5 fiches ayant un titre, un statut, un pilote et qui ont été éditées il y a moins de 12 mois. La note de qualité est une note sur 10 donnée à un plan en considérant la complétude de l'ensemble de ses fiches actions."
 )
 
 bar_plans_data = [
     {"catégorie": "Plans créés", "Nombre": _nb_plans_total},
-    {"catégorie": "Actifs (12 mois)", "Nombre": _nb_plans_actifs},
-    {"catégorie": "Qualité > 5/10", "Nombre": _nb_plans_score},
+    {"catégorie": "dont Actifs (12 mois)", "Nombre": _nb_plans_actifs},
+    {"catégorie": "dont Qualité > 5/10", "Nombre": _nb_plans_score},
 ]
 
 with elements("bar_plans_distrib"):
@@ -911,252 +913,238 @@ with elements("bar_plans_distrib"):
 
 
 
-geo_badge(selected_region, selected_departement, "Plans & Fiches actions", icon=":material/task:", color="blue")
+geo_badge(selected_region, selected_departement, "Types de plans d'action pilotables", icon=":material/looks:", color="green")
 
 col_pap, col_fap = st.columns(2)
 
-# --- Graphique PAP : nombre de lignes cumulées ---
-with col_pap:
+# --- Graphique PAP : plans d'action pilotables actifs par type ---
 
-    df_pap_filtered = df_pap.copy()
-    df_pap_filtered['mois'] = pd.to_datetime(df_pap_filtered['mois'])
-    if selected_region != "Toutes":
-        df_pap_filtered = df_pap_filtered[df_pap_filtered["region_name"] == selected_region]
-    if selected_departement != "Tous":
-        df_pap_filtered = df_pap_filtered[df_pap_filtered["departement_name"] == selected_departement]
+df_pap52_filtered = df_pap_52.copy()
+df_pap52_filtered['mois'] = pd.to_datetime(df_pap52_filtered['mois'])
+df_pap52_filtered["nom_plan"] = df_pap52_filtered["nom_plan"].str.replace("(incluant Plans qualité de l'air)", "", regex=False).str.strip()
 
-    df_pap_evolution = (
-        df_pap_filtered.groupby('mois')
-        .size()
-        .reset_index(name='nb')
-        .sort_values('mois')
-    )
-    df_pap_evolution['nb_cumule'] = df_pap_evolution['nb'].cumsum()
+_geo_plans = df_plans_distrib[['plan', 'region_name', 'departement_name']].drop_duplicates()
+df_pap52_filtered = df_pap52_filtered.merge(_geo_plans, on='plan', how='left')
 
-    # Bouche les mois manquants avec la valeur cumulée du mois précédent
-    if not df_pap_evolution.empty:
-        all_months_pap = pd.date_range(
-            df_pap_evolution['mois'].min(),
-            df_pap_evolution['mois'].max(),
-            freq='MS'
-        )
-        df_pap_evolution = (
-            df_pap_evolution.set_index('mois')
-            .reindex(all_months_pap)
-            .rename_axis('mois')
-            .reset_index()
-        )
-        df_pap_evolution['nb_cumule'] = df_pap_evolution['nb_cumule'].ffill().fillna(0).astype(int)
 
-    if df_pap_evolution.empty:
-        st.info("Aucune donnée PAP disponible.")
-    else:
-        derniere_val_pap = f"{int(df_pap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
-        _help_pap = "Un plan d'action pilotable est un plan d'action qui comprend au moins 5 actions pilotables."
-        if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"En région **{selected_region}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
-        elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"En **{selected_departement}**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
-        else:
-            st.markdown(f"Sur le **territoire national**, **{derniere_val_pap} plans d'actions pilotables** ont été déposés.", help=_help_pap)
-
-        pap_data = [
-            {
-                "id": "Plans d'action",
-                "data": [
-                    {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_cumule'])}
-                    for _, row in df_pap_evolution[df_pap_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
-                ]
-            }
-        ]
-
-        with elements("area_pap_evolution"):
-            with mui.Box(sx={"height": 400}):
-                nivo.Line(
-                    data=pap_data,
-                    margin={"top": 20, "right": 30, "bottom": 70, "left": 60},
-                    xScale={"type": "point"},
-                    yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
-                    curve="monotoneX",
-                    axisTop=None,
-                    axisRight=None,
-                    axisBottom={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": -45,
-                        "legend": "Plans d'action pilotables",
-                        "legendOffset": 60,
-                        "legendPosition": "middle"
-                    },
-                    axisLeft={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": 0,
-                    },
-                    enableArea=True,
-                    areaOpacity=0.3,
-                    enablePoints=False,
-                    useMesh=True,
-                    enableSlices="x",
-                    colors=["#10b981"],
-                    theme=theme_actif,
-                )
-
-# --- Graphique FAP : fiches actions pilotables (distinct fiche_id cumulées) ---
-with col_fap:
-
-    df_fap_filtered = df_fap.copy()
-    df_fap_filtered['mois'] = pd.to_datetime(df_fap_filtered['mois'])
-    if selected_region != "Toutes":
-        df_fap_filtered = df_fap_filtered[df_fap_filtered["region_name"] == selected_region]
-    if selected_departement != "Tous":
-        df_fap_filtered = df_fap_filtered[df_fap_filtered["departement_name"] == selected_departement]
-
-    df_fap_evolution = (
-        df_fap_filtered.groupby('mois')['fiche_id']
-        .nunique()
-        .reset_index(name='nb')
-        .sort_values('mois')
-    )
-    df_fap_evolution['nb_cumule'] = df_fap_evolution['nb'].cumsum()
-
-    # Bouche les mois manquants avec la valeur cumulée du mois précédent
-    if not df_fap_evolution.empty:
-        all_months_fap = pd.date_range(
-            df_fap_evolution['mois'].min(),
-            df_fap_evolution['mois'].max(),
-            freq='MS'
-        )
-        df_fap_evolution = (
-            df_fap_evolution.set_index('mois')
-            .reindex(all_months_fap)
-            .rename_axis('mois')
-            .reset_index()
-        )
-        df_fap_evolution['nb_cumule'] = df_fap_evolution['nb_cumule'].ffill().fillna(0).astype(int)
-
-    if df_fap_evolution.empty:
-        st.info("Aucune donnée FAP disponible.")
-    else:
-        derniere_val_fap = f"{int(df_fap_evolution['nb_cumule'].iloc[-1]):,}".replace(",", "\u202f")
-        _help_fap = "Une action pilotable est une action qui comprend au moins un titre, une description, un statut et une personne pilote."
-        if selected_region != "Toutes" and selected_departement == "Tous":
-            st.markdown(f"En région **{selected_region}**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
-        elif selected_region != "Toutes" and selected_departement != "Tous":
-            st.markdown(f"En **{selected_departement}**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
-        else:
-            st.markdown(f"Sur le **territoire national**, **{derniere_val_fap} actions pilotables** ont été créées.", help=_help_fap)
-
-        fap_data = [
-            {
-                "id": "Fiches actions pilotables",
-                "data": [
-                    {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_cumule'])}
-                    for _, row in df_fap_evolution[df_fap_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
-                ]
-            }
-        ]
-
-        with elements("area_fap_evolution"):
-            with mui.Box(sx={"height": 400}):
-                nivo.Line(
-                    data=fap_data,
-                    margin={"top": 20, "right": 30, "bottom": 70, "left": 60},
-                    xScale={"type": "point"},
-                    yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
-                    curve="monotoneX",
-                    axisTop=None,
-                    axisRight=None,
-                    axisBottom={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": -45,
-                        "legend": "Fiches actions pilotables",
-                        "legendOffset": 60,
-                        "legendPosition": "middle"
-                    },
-                    axisLeft={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": 0,
-                    },
-                    enableArea=True,
-                    areaOpacity=0.3,
-                    enablePoints=False,
-                    useMesh=True,
-                    enableSlices="x",
-                    colors=["#f59e0b"],
-                    theme=theme_actif,
-                )
-
-# --- Histogramme : Répartition des PAP par type ---
-
-df_pap_type = df_pap.copy()
 if selected_region != "Toutes":
-    df_pap_type = df_pap_type[df_pap_type["region_name"] == selected_region]
+    df_pap52_filtered = df_pap52_filtered[df_pap52_filtered["region_name"] == selected_region]
 if selected_departement != "Tous":
-    df_pap_type = df_pap_type[df_pap_type["departement_name"] == selected_departement]
+    df_pap52_filtered = df_pap52_filtered[df_pap52_filtered["departement_name"] == selected_departement]
 
-df_pap_type["nom_plan"] = df_pap_type["nom_plan"].str.replace("(incluant Plans qualité de l'air)", "", regex=False).str.strip()
+df_pap52_actifs = df_pap52_filtered[df_pap52_filtered["statut"] == "actif"]
 
-df_pap_type_counts = (
-    df_pap_type.groupby("nom_plan")
-    .size()
-    .reset_index(name="count")
-    .sort_values("count", ascending=False)
+df_pap52_grouped = (
+    df_pap52_actifs.groupby(['mois', 'nom_plan'])['plan']
+    .nunique()
+    .reset_index(name='nb_plans')
 )
 
-if df_pap_type_counts.empty:
-    st.info("Aucune donnée de type de plan d'action disponible.")
+all_mois_pap52 = sorted(df_pap52_grouped['mois'].unique())
+all_types_pap52 = df_pap52_grouped['nom_plan'].unique()
+
+_dernier_mois_tri = max(all_mois_pap52)
+totaux_par_type = (
+    df_pap52_grouped[df_pap52_grouped['mois'] == _dernier_mois_tri]
+    .groupby('nom_plan')['nb_plans']
+    .sum()
+    .sort_values(ascending=False)
+)
+types_tries = totaux_par_type.index.tolist()
+
+if df_pap52_grouped.empty:
+    st.info("Aucune donnée de plans actifs disponible.")
 else:
+    _dernier_mois_pap = max(all_mois_pap52)
+    _nb_actifs_dernier = df_pap52_filtered[(df_pap52_filtered.mois==_dernier_mois_pap) & (df_pap52_filtered.statut=='actif')].plan.nunique()
+    _nb_actifs_fmt = f"{_nb_actifs_dernier:,}".replace(",", "\u202f")
+    _nb_plans = df_pap52_filtered[(df_pap52_filtered.mois==_dernier_mois_pap)].nom_plan.nunique()
+
+    _help_pap = "Un plan d'action pilotable actif est un plan d'action contenant au moins 5 fiches modifiées au cours des 12 derniers mois avec un titre, un pilote et un statut."
     if selected_region != "Toutes" and selected_departement == "Tous":
-        _label_type = f"En région **{selected_region}**"
+        st.markdown(f"En région **{selected_region}**, il y a **{_nb_actifs_fmt} plans d'actions** pilotables actifs de **{_nb_plans} différents types**.", help=_help_pap)
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        _label_type = f"En **{selected_departement}**"
+        st.markdown(f"En **{selected_departement}**, il y a **{_nb_actifs_fmt} plans d'actions** pilotables actifs de **{_nb_plans} différents types**.", help=_help_pap)
     else:
-        _label_type = "Sur le **territoire national**"
-    _nb_types = len(df_pap_type_counts)
-    st.markdown(f"{_label_type}, il y a **{_nb_types} types de plans** pilotés sur Territoires en Transitions.")
+        st.markdown(f"Sur le **territoire national**, il y a **{_nb_actifs_fmt} plans d'actions** pilotables actifs de **{_nb_plans} différents types**.", help=_help_pap)
 
-    bar_data_pap_type = [
-        {"type": row["nom_plan"], "Nombre": int(row["count"])}
-        for _, row in df_pap_type_counts.iterrows()
-    ]
+    area_pap52_data = []
+    for nom in types_tries:
+        df_type = df_pap52_grouped[df_pap52_grouped['nom_plan'] == nom].copy()
+        df_all = pd.DataFrame({'mois': all_mois_pap52})
+        df_complete = df_all.merge(df_type[['mois', 'nb_plans']], on='mois', how='left')
+        df_complete['nb_plans'] = df_complete['nb_plans'].fillna(0).astype(int)
 
-    with elements("bar_pap_type"):
-        with mui.Box(sx={"height": 500}):
-            nivo.Bar(
-                data=bar_data_pap_type,
-                keys=["Nombre"],
-                indexBy="type",
-                margin={"top": 20, "right": 30, "bottom": 140, "left": 60},
-                padding=0.35,
-                valueScale={"type": "linear"},
-                indexScale={"type": "band", "round": True},
-                colors=["#10b981"],
-                borderRadius=4,
+        area_pap52_data.append({
+            "id": nom,
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_plans'])}
+                for _, row in df_complete.iterrows()
+            ]
+        })
+
+    with elements("area_pap_evolution"):
+        with mui.Box(sx={"height": 550}):
+            nivo.Line(
+                data=area_pap52_data,
+                margin={"top": 20, "right": 250, "bottom": 90, "left": 60},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": True, "reverse": False},
+                curve="monotoneX",
                 axisTop=None,
                 axisRight=None,
                 axisBottom={
                     "tickSize": 5,
                     "tickPadding": 5,
-                    "tickRotation": -35,
-                    "legend": "Répartition des plans par type",
-                    "legendPosition": "middle",
-                    "legendOffset": 130,
+                    "tickRotation": -45,
+                    "legend": "Plans d'action pilotables actifs",
+                    "legendOffset": 60,
+                    "legendPosition": "middle"
                 },
                 axisLeft={
                     "tickSize": 5,
                     "tickPadding": 5,
                     "tickRotation": 0,
-                    "legend": "",
-                    "legendPosition": "middle",
-                    "legendOffset": -50,
                 },
-                labelSkipWidth=12,
-                labelSkipHeight=12,
-                labelTextColor={"from": "color", "modifiers": [["darker", 2]]},
-                enableLabel=True,
+                enableArea=True,
+                areaOpacity=0.7,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                legends=[
+                    {
+                        "anchor": "bottom-right",
+                        "direction": "column",
+                        "justify": False,
+                        "translateX": 170,
+                        "translateY": 0,
+                        "itemsSpacing": 2,
+                        "itemWidth": 150,
+                        "itemHeight": 20,
+                        "itemDirection": "left-to-right",
+                        "itemOpacity": 0.85,
+                        "symbolSize": 12,
+                        "symbolShape": "circle",
+                    }
+                ],
+                colors={"scheme": "pastel2"},
+                theme=theme_actif,
+            )
+
+
+geo_badge(selected_region, selected_departement, "Actions pilotables actives", icon=":material/add_notes:", color="green")
+
+
+df_fa_distrib_filtered = df_fa_distrib.copy()
+df_fa_distrib_filtered['mois'] = pd.to_datetime(df_fa_distrib_filtered['mois'])
+if selected_region != "Toutes":
+    df_fa_distrib_filtered = df_fa_distrib_filtered[df_fa_distrib_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_fa_distrib_filtered = df_fa_distrib_filtered[df_fa_distrib_filtered["departement_name"] == selected_departement]
+
+df_fa_mois = (
+    df_fa_distrib_filtered.groupby('mois')
+    .agg(
+        action=('action', 'sum'),
+        action_pilotable=('action_pilotable', 'sum'),
+        action_pilotable_actives=('action_pilotable_actives', 'sum'),
+    )
+    .reset_index()
+    .sort_values('mois')
+)
+
+if df_fa_mois.empty:
+    st.info("Aucune donnée de fiches actions disponible.")
+else:
+    _last = df_fa_mois.iloc[-1]
+    _nb_actions_fmt = f"{int(_last['action']):,}".replace(",", "\u202f")
+    _nb_pilot_fmt = f"{int(_last['action_pilotable']):,}".replace(",", "\u202f")
+    _nb_actives_fmt = f"{int(_last['action_pilotable_actives']):,}".replace(",", "\u202f")
+
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        _label_fa = f"En région **{selected_region}**"
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        _label_fa = f"En **{selected_departement}**"
+    else:
+        _label_fa = "Sur le **territoire national**"
+
+    st.markdown(
+        f"{_label_fa}, **{_nb_actions_fmt} actions** sont sur Territoires en Transitions dont **{_nb_pilot_fmt} pilotables** "
+        f"et **{_nb_actives_fmt} pilotables actives**."
+    )
+
+    _date_3y_fa = pd.Timestamp.now().normalize() - pd.DateOffset(years=3)
+    df_fa_mois_display = df_fa_mois[df_fa_mois['mois'] >= _date_3y_fa]
+
+    fa_line_data = [
+        {
+            "id": "dont pilotables actives",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['action_pilotable_actives'])}
+                for _, row in df_fa_mois_display.iterrows()
+            ]
+        },
+        {
+            "id": "dont pilotables",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['action_pilotable'])}
+                for _, row in df_fa_mois_display.iterrows()
+            ]
+        },
+        {
+            "id": "Actions",
+            "data": [
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['action'])}
+                for _, row in df_fa_mois_display.iterrows()
+            ]
+        },
+    ]
+
+    with elements("area_fap_evolution"):
+        with mui.Box(sx={"height": 550}):
+            nivo.Line(
+                data=fa_line_data,
+                margin={"top": 20, "right": 180, "bottom": 90, "left": 60},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
+                curve="monotoneX",
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -45,
+                    "legend": "Evolution du nombre de fiches actions",
+                    "legendOffset": 60,
+                    "legendPosition": "middle"
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                },
+                enableArea=False,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                lineWidth=2,
+                colors=["#3b82f6", "#10b981", "#f59e0b"],
+                legends=[
+                    {
+                        "anchor": "bottom-right",
+                        "direction": "column",
+                        "justify": False,
+                        "translateX": 170,
+                        "translateY": 0,
+                        "itemsSpacing": 2,
+                        "itemWidth": 150,
+                        "itemHeight": 20,
+                        "itemDirection": "left-to-right",
+                        "itemOpacity": 0.85,
+                        "symbolSize": 12,
+                        "symbolShape": "circle",
+                    }
+                ],
                 theme=theme_actif,
             )
 
