@@ -503,7 +503,7 @@ else:
 # ===================================================
 st.markdown("---")
 
-st.markdown("## Outiller les personnes qui font avancer la planification écologique")
+st.markdown("## Outiller les personnes qui font avancer la planification écologique.")
 
 # Préparation du dataframe de base avec filtres géographiques
 df_users = df_ct_users_actifs.copy()
@@ -599,7 +599,7 @@ else:
 # --- Distribution du nombre d'utilisateurs actifs par collectivité (24 derniers mois glissants) ---
 
 st.markdown('---')
-st.markdown("## Faciliter la collaboration")
+st.markdown("## Faciliter la collaboration.")
 
 _dernier_mois_glissant = df_users['mois'].max()
 _mask_24m = (
@@ -1068,7 +1068,7 @@ else:
 
 st.markdown("---")
 
-st.markdown("## Suivre les indicateurs clés de la planification écologique territoriale")
+st.markdown("## Suivre les indicateurs clés de la planification écologique territoriale.")
 
 df_ind_filtered = df_ind_perso.copy()
 df_ind_filtered['mois'] = pd.to_datetime(df_ind_filtered['mois'])
@@ -1285,7 +1285,7 @@ else:
 
 st.markdown("---")
 
-st.markdown("## Evaluer et valoriser la progression de chaque territoire")
+st.markdown("## Evaluer et valoriser la progression de chaque territoire.")
 
 geo_badge(selected_region, selected_departement, "Labellisation", icon=":material/stack_star:", color="orange")
 
