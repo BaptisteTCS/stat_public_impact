@@ -124,7 +124,7 @@ with selects[1]:
 st.markdown("*La sélection d'un territoire s'applique à toute la page.*")
 st.markdown("---")
 
-st.markdown("## Déployer la transition écologique sur la totalité du territoire.")
+st.markdown("## Déployer la transition écologique sur la totalité du territoire")
 
 # Application des filtres géographiques sur le dataframe principal
 df_ct_actives_selected = df_ct_actives.copy()
@@ -351,8 +351,8 @@ _sirens_avec_pap = set(
     ]['siren'].dropna().astype(str)
 )
 
-_STATUT_PAP = "Compte + Plan d'action pilotable"
-_STATUT_PROFIL = "Compte seul"
+_STATUT_PAP = "Compte actif + Plan d'action pilotable"
+_STATUT_PROFIL = "Compte actif"
 _STATUT_SANS = "Sans compte"
 _STATUT_ORDER = [_STATUT_PAP, _STATUT_PROFIL, _STATUT_SANS]
 _COLOR_MAP = {
@@ -362,7 +362,7 @@ _COLOR_MAP = {
 }
 
 st.markdown('---')
-st.markdown("## Mobiliser tous les EPCI pour piloter la transition écologique.")
+st.markdown("## Mobiliser tous les EPCI pour piloter la transition écologique")
 
 def _statut_epci(siren):
     if siren in _sirens_avec_pap:
@@ -503,7 +503,7 @@ else:
 # ===================================================
 st.markdown("---")
 
-st.markdown("## Outiller les personnes qui font avancer la planification écologique.")
+st.markdown("## Outiller les personnes qui font avancer la planification écologique")
 
 # Préparation du dataframe de base avec filtres géographiques
 df_users = df_ct_users_actifs.copy()
@@ -599,7 +599,7 @@ else:
 # --- Distribution du nombre d'utilisateurs actifs par collectivité (24 derniers mois glissants) ---
 
 st.markdown('---')
-st.markdown("## Faciliter la collaboration.")
+st.markdown("## Faciliter la collaboration")
 
 _dernier_mois_glissant = df_users['mois'].max()
 _mask_24m = (
@@ -694,7 +694,7 @@ if not df_distrib.empty:
 
 st.markdown('---')
 
-st.markdown('## Planifier les transitions.')
+st.markdown('## Planifier les transitions')
 
 df_pap_evolution = df_pap_52.copy()
 df_pap_evolution['mois'] = pd.to_datetime(df_pap_evolution['mois'])
@@ -816,7 +816,7 @@ else:
 
 st.markdown('---')
 
-st.markdown("## Mettre un titre ici.")
+st.markdown("## Faciliter la gestion multi-plans [transverses et thématiques]")
 
 col_pap, col_fap = st.columns(2)
 
@@ -943,7 +943,7 @@ else:
             )
 
 st.markdown('---')
-st.markdown("## Mettre en œuvre les actions.")
+st.markdown("## Mettre en œuvre les actions")
 
 df_fa_distrib_filtered = df_fa_distrib.copy()
 df_fa_distrib_filtered['mois'] = pd.to_datetime(df_fa_distrib_filtered['mois'])
@@ -1068,7 +1068,7 @@ else:
 
 st.markdown("---")
 
-st.markdown("## Suivre les indicateurs clés de la planification écologique territoriale.")
+st.markdown("## Suivre les indicateurs clés de la planification écologique territoriale")
 
 df_ind_filtered = df_ind_perso.copy()
 df_ind_filtered['mois'] = pd.to_datetime(df_ind_filtered['mois'])
@@ -1097,103 +1097,62 @@ else:
 if df_ind_evolution.empty:
     st.info("Aucune donnée d'indicateurs disponible pour les filtres sélectionnés.")
 else:
+    geo_badge(selected_region, selected_departement, "Nombre d'indicateurs personnalisés", icon=":material/stacked_line_chart:", color="orange")
 
-    _col_ind_ct, _col_ind_nb = st.columns(2)
-
-    with _col_ind_nb:
-
-        geo_badge(selected_region, selected_departement, "Nombre d'indicateurs personnalisés", icon=":material/stacked_line_chart:", color="orange")
-
-        ind_data = [
-            {
-                "id": "Indicateurs personnalisés",
-                "data": [
-                    {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb'])}
-                    for _, row in df_ind_evolution[df_ind_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
-                ]
-            }
-        ]
-
-
-        with elements("area_ind_perso"):
-            with mui.Box(sx={"height": 550}):
-                nivo.Line(
-                    data=ind_data,
-                    margin={"top": 20, "right": 30, "bottom": 50, "left": 90},
-                    xScale={"type": "point"},
-                    yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
-                    curve="monotoneX",
-                    axisTop=None,
-                    axisRight=None,
-                    axisBottom={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": -45,
-                    },
-                    axisLeft={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": 0,
-                        "legend": "Indicateurs personnalisés",
-                        "legendPosition": "middle",
-                        "legendOffset": -60,
-                    },
-                    enableArea=True,
-                    areaOpacity=0.3,
-                    enablePoints=False,
-                    useMesh=True,
-                    enableSlices="x",
-                    colors=["#f97316"],
-                    theme=theme_actif,
-                )
-
-    ind_ct_data = [
+    ind_data = [
         {
-            "id": "Collectivités",
+            "id": "Indicateurs personnalisés",
             "data": [
-                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_ct'])}
+                {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb'])}
                 for _, row in df_ind_evolution[df_ind_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
             ]
         }
     ]
 
-    with _col_ind_ct:
 
-        geo_badge(selected_region, selected_departement, "Collectivités avec indicateurs personnalisés", icon=":material/stacked_line_chart:", color="orange")
-        
+    with elements("area_ind_perso"):
+        with mui.Box(sx={"height": 550}):
+            nivo.Line(
+                data=ind_data,
+                margin={"top": 20, "right": 30, "bottom": 50, "left": 90},
+                xScale={"type": "point"},
+                yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
+                curve="monotoneX",
+                axisTop=None,
+                axisRight=None,
+                axisBottom={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": -45,
+                },
+                axisLeft={
+                    "tickSize": 5,
+                    "tickPadding": 5,
+                    "tickRotation": 0,
+                    "legend": "Indicateurs personnalisés",
+                    "legendPosition": "middle",
+                    "legendOffset": -60,
+                },
+                enableArea=True,
+                areaOpacity=0.3,
+                enablePoints=False,
+                useMesh=True,
+                enableSlices="x",
+                colors=["#f97316"],
+                theme=theme_actif,
+            )
 
-        with elements("area_ind_perso_ct"):
-            with mui.Box(sx={"height": 550}):
-                nivo.Line(
-                    data=ind_ct_data,
-                    margin={"top": 20, "right": 30, "bottom": 50, "left": 70},
-                    xScale={"type": "point"},
-                    yScale={"type": "linear", "min": 0, "max": "auto", "stacked": False, "reverse": False},
-                    curve="monotoneX",
-                    axisTop=None,
-                    axisRight=None,
-                    axisBottom={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": -45,
-                    },
-                    axisLeft={
-                        "tickSize": 5,
-                        "tickPadding": 5,
-                        "tickRotation": 0,
-                        "legend": "Collectivités",
-                        "legendPosition": "middle",
-                        "legendOffset": -60,
-                    },
-                    enableArea=True,
-                    areaOpacity=0.3,
-                    enablePoints=False,
-                    useMesh=True,
-                    enableSlices="x",
-                    colors=["#f97316"],
-                    theme=theme_actif,
-                )
+ind_ct_data = [
+    {
+        "id": "Collectivités",
+        "data": [
+            {"x": row['mois'].strftime('%Y-%m'), "y": int(row['nb_ct'])}
+            for _, row in df_ind_evolution[df_ind_evolution['mois'] >= DATE_DEBUT_GRAPHES].iterrows()
+        ]
+    }
+]
 
+    
 df_ind_od_filtered = df_ind_od.copy()
 df_ind_od_filtered['mois'] = pd.to_datetime(df_ind_od_filtered['mois'])
 if selected_region != "Toutes":
@@ -1218,7 +1177,7 @@ _nb_titres = df_ind_od_producteur_filtered['titre'].nunique()
 _nb_sources = df_ind_od_producteur_filtered['producteur'].nunique()
 
 st.markdown('---')
-st.markdown("## Mettre à disposition les indicateurs open data.")
+st.markdown("## Mettre à disposition les indicateurs open data")
 
 if df_ind_od_evolution.empty:
     st.info("Aucune donnée d'indicateurs open data disponible pour les filtres sélectionnés.")
@@ -1285,7 +1244,7 @@ else:
 
 st.markdown("---")
 
-st.markdown("## Evaluer et valoriser la progression de chaque territoire.")
+st.markdown("## Evaluer et valoriser la progression de chaque territoire")
 
 geo_badge(selected_region, selected_departement, "Labellisation", icon=":material/stack_star:", color="orange")
 
