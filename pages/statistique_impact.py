@@ -84,9 +84,10 @@ def load_data():
     df_plans_distrib = read_table('plan_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Plan distrib
     df_pap_52 = read_table('pap_statut_5_fiches_modifiees_52_semaines')
     df_fa_distrib = read_table('fa_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - FA disrib
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib 
+    df_labellisation_stock = read_table('labellisation_stock_evolution') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Labellisation stock evolution
+    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock 
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib = load_data()
+df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock = load_data()
 
 df_collectivite = df_collectivite[
     ~df_collectivite['nom'].str.contains('SM|PETR|Syndicat', case=False, na=False)
@@ -301,7 +302,7 @@ else:
 
 @st.cache_data(show_spinner=False)
 def _load_gdf_epci():
-    path = os.path.join(os.path.dirname(__file__), '..', 'epcis_2023_collection.json')
+    path = os.path.join(os.path.dirname(__file__), '..', 'epcis_shifted.geojson')
     gdf = gpd.read_file(path)
     gdf = gdf.to_crs(epsg=4326)
     gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.001)
@@ -598,7 +599,7 @@ else:
 # --- Distribution du nombre d'utilisateurs actifs par collectivité (24 derniers mois glissants) ---
 
 st.markdown('---')
-st.markdown("## Mettre un titre ici")
+st.markdown("## Faciliter la collaboration")
 
 _dernier_mois_glissant = df_users['mois'].max()
 _mask_24m = (
@@ -1283,19 +1284,6 @@ st.markdown("## Evaluer et valoriser la progression de chaque territoire")
 
 geo_badge(selected_region, selected_departement, "Labellisation", icon=":material/stack_star:", color="orange")
 
-df_label_filtered = df_labellisation.copy()
-if selected_region != "Toutes":
-    df_label_filtered = df_label_filtered[df_label_filtered["region_name"] == selected_region]
-if selected_departement != "Tous":
-    df_label_filtered = df_label_filtered[df_label_filtered["departement_name"] == selected_departement]
-
-# Pour chaque collectivité × référentiel, ne garder que la labellisation la plus récente
-df_label_latest = (
-    df_label_filtered.sort_values("obtenue_le")
-    .groupby(["collectivite_id", "referentiel"], as_index=False)
-    .last()
-)
-
 _couleurs_etoiles = {
     1: "#fde68a",
     2: "#fbbf24",
@@ -1304,57 +1292,121 @@ _couleurs_etoiles = {
     5: "#92400e",
 }
 
-col_cae, col_eci = st.columns(2)
+df_label_stock_filtered = df_labellisation_stock.copy()
+if selected_region != "Toutes":
+    df_label_stock_filtered = df_label_stock_filtered[df_label_stock_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_label_stock_filtered = df_label_stock_filtered[df_label_stock_filtered["departement_name"] == selected_departement]
 
-for col_graph, ref_code, ref_label in [
-    (col_cae, "cae", "Climat Air Énergie"),
-    (col_eci, "eci", "Économie Circulaire"),
+df_label_stock_agg = (
+    df_label_stock_filtered.groupby(["year", "referentiel", "etoiles"])["nb_collectivites"]
+    .sum()
+    .reset_index()
+    .sort_values(["year", "etoiles"])
+)
+
+df_label_filtered = df_labellisation.copy()
+if selected_region != "Toutes":
+    df_label_filtered = df_label_filtered[df_label_filtered["region_name"] == selected_region]
+if selected_departement != "Tous":
+    df_label_filtered = df_label_filtered[df_label_filtered["departement_name"] == selected_departement]
+
+df_label_latest = (
+    df_label_filtered.sort_values("obtenue_le")
+    .groupby(["collectivite_id", "referentiel"], as_index=False)
+    .last()
+)
+
+col_stock_cae, col_stock_eci = st.columns(2)
+
+for col_stock, ref_code, ref_label in [
+    (col_stock_cae, "cae", "Climat Air Énergie"),
+    (col_stock_eci, "eci", "Économie Circulaire"),
 ]:
-    with col_graph:
-        df_ref = df_label_latest[df_label_latest["referentiel"] == ref_code]
-        df_counts = (
-            df_ref.groupby("etoiles")["collectivite_id"]
-            .nunique()
-            .reset_index(name="nb")
-            .sort_values("etoiles")
-        )
+    df_ref_stock = df_label_stock_agg[df_label_stock_agg["referentiel"] == ref_code]
+    all_years_full = sorted(df_ref_stock["year"].unique())
+    if all_years_full:
+        max_year = max(all_years_full)
+        min_year = max_year - 5
+        all_years = [y for y in all_years_full if y >= min_year]
+    else:
+        all_years = []
+    all_etoiles = sorted(df_ref_stock["etoiles"].unique())
 
-        if df_counts.empty:
-            st.info(f"Aucune labellisation {ref_label} disponible pour les filtres sélectionnés.")
-        else:
-            _total_ref = int(df_counts["nb"].sum())
-            _total_fmt = f"{_total_ref:,}".replace(",", "\u202f")
-            _nb_4plus = int(df_counts[df_counts["etoiles"] >= 4]["nb"].sum())
-            _nb_4plus_fmt = f"{_nb_4plus:,}".replace(",", "\u202f")
-            st.markdown(f"**{ref_label}** : **{_total_fmt} collectivités** labellisées dont **{_nb_4plus_fmt}** avec 4 étoiles ou plus.")
+    df_ref_counts = df_label_latest[df_label_latest["referentiel"] == ref_code]
+    _df_counts = (
+        df_ref_counts.groupby("etoiles")["collectivite_id"]
+        .nunique()
+        .reset_index(name="nb")
+    )
+    _total_ref = int(_df_counts["nb"].sum())
+    _total_fmt = f"{_total_ref:,}".replace(",", "\u202f")
+    _nb_4plus = int(_df_counts[_df_counts["etoiles"] >= 4]["nb"].sum())
+    _nb_4plus_fmt = f"{_nb_4plus:,}".replace(",", "\u202f")
 
-            donut_data = [
-                {
-                    "id": f"{'⭐' * int(row['etoiles'])}",
-                    "label": f"{int(row['etoiles'])} étoile{'s' if row['etoiles'] > 1 else ''}",
-                    "value": int(row["nb"]),
-                    "color": _couleurs_etoiles.get(int(row["etoiles"]), "#e5e7eb"),
-                }
-                for _, row in df_counts.iterrows()
-            ]
+    stock_line_data = []
+    for etoile in all_etoiles:
+        df_e = df_ref_stock[df_ref_stock["etoiles"] == etoile]
+        df_all_years = pd.DataFrame({"year": all_years})
+        df_complete = df_all_years.merge(df_e[["year", "nb_collectivites"]], on="year", how="left")
+        df_complete["nb_collectivites"] = df_complete["nb_collectivites"].fillna(0).astype(int)
 
-            with elements(f"donut_label_{ref_code}"):
+        label = f"{int(etoile)} étoile{'s' if etoile > 1 else ''}"
+        stock_line_data.append({
+            "id": label,
+            "data": [
+                {"x": str(int(row["year"])), "y": int(row["nb_collectivites"])}
+                for _, row in df_complete.iterrows()
+            ],
+        })
+
+    with col_stock:
+        st.markdown(f"**{ref_label}** : **{_total_fmt} collectivités** labellisées dont **{_nb_4plus_fmt}** avec 4 étoiles ou plus.")
+        if not df_ref_stock.empty:
+            with elements(f"line_label_stock_{ref_code}"):
                 with mui.Box(sx={"height": 450}):
-                    nivo.Pie(
-                        data=donut_data,
-                        margin={"top": 30, "right": 120, "bottom": 30, "left": 120},
-                        innerRadius=0.55,
-                        padAngle=1.5,
-                        cornerRadius=4,
-                        activeOuterRadiusOffset=8,
-                        colors={"datum": "data.color"},
-                        arcLinkLabelsSkipAngle=10,
-                        arcLinkLabelsTextColor="#31333F",
-                        arcLinkLabelsThickness=2,
-                        arcLinkLabelsColor={"from": "color"},
-                        arcLabelsSkipAngle=15,
-                        arcLabelsTextColor={"from": "color", "modifiers": [["darker", 2]]},
-                        legends=[],
+                    nivo.Line(
+                        data=stock_line_data,
+                        margin={"top": 20, "right": 30, "bottom": 90, "left": 60},
+                        xScale={"type": "point"},
+                        yScale={"type": "linear", "min": 0, "max": "auto", "stacked": True, "reverse": False},
+                        curve="monotoneX",
+                        axisTop=None,
+                        axisRight=None,
+                        axisBottom={
+                            "tickSize": 5,
+                            "tickPadding": 5,
+                            "tickRotation": -45,
+                        },
+                        axisLeft={
+                            "tickSize": 5,
+                            "tickPadding": 5,
+                            "tickRotation": 0,
+                        },
+                        enableArea=True,
+                        areaOpacity=0.7,
+                        enablePoints=False,
+                        useMesh=True,
+                        enableSlices="x",
+                        colors=[_couleurs_etoiles.get(e, "#e5e7eb") for e in all_etoiles],
+                        legends=[
+                            {
+                                "anchor": "bottom",
+                                "direction": "row",
+                                "justify": False,
+                                "translateX": 0,
+                                "translateY": 85,
+                                "itemsSpacing": 8,
+                                "itemWidth": 90,
+                                "itemHeight": 20,
+                                "itemDirection": "left-to-right",
+                                "itemOpacity": 0.85,
+                                "symbolSize": 12,
+                                "symbolShape": "circle",
+                            }
+                        ],
                         theme=theme_actif,
                     )
+        else:
+            st.info(f"Aucune donnée de labellisation {ref_label} disponible.")
 
