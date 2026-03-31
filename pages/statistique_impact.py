@@ -387,9 +387,9 @@ _pct_pap = round(_nb_pap / _total_carte * 100) if _total_carte else 0
 if selected_region == "Toutes" and selected_departement == "Tous":
     st.markdown(f"Sur le **territoire national**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 elif selected_region != "Toutes" and selected_departement ==  "Tous":
-    st.markdown(f"En région **{selected_region}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} %** ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
+    st.markdown(f"En région **{selected_region}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"En **{selected_departement}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} %** ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
+    st.markdown(f"En **{selected_departement}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 
 
 if gdf_epci.empty:
@@ -546,11 +546,11 @@ else:
     _help_txt = "Un utilisateur actif est une personne qui a effectué au moins une connexion sur les 24 derniers mois."
 
     if selected_region != "Toutes" and selected_departement == "Tous":
-        st.markdown(f"En région **{selected_region}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt}** nous ont rejoints le mois dernier.", help=_help_txt)
+        st.markdown(f"En région **{selected_region}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt} nous ont rejoints le mois dernier.**", help=_help_txt)
     elif selected_region != "Toutes" and selected_departement != "Tous":
-        st.markdown(f"En **{selected_departement}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt}** nous ont rejoints le mois dernier.", help=_help_txt)
+        st.markdown(f"En **{selected_departement}**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt} nous ont rejoints le mois dernier.**", help=_help_txt)
     else:
-        st.markdown(f"Sur le **territoire national**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt}** nous ont rejoints le mois dernier.", help=_help_txt)
+        st.markdown(f"Sur le **territoire national**, Territoires en Transitions compte **{derniere_valeur} {label_texte}** dont **{_nb_nouveaux_fmt} nous ont rejoints le mois dernier.**", help=_help_txt)
 
     geo_badge(selected_region, selected_departement, "Nombre d’utilisateurs actifs", icon=":material/person_check:", color="blue")
 
@@ -738,7 +738,7 @@ else:
     )
     st.markdown(
         f"{_label_plans}, Territoires en Transitions compte **{_nb_pilotables_fmt} plans d'actions pilotables** "
-        f"dont **{_nb_actifs_fmt}** sont actifs.",
+        f"dont **{_nb_actifs_fmt} sont actifs.**",
         help=_help_plans,
     )
 
@@ -1231,6 +1231,11 @@ else:
     else:
         st.markdown(f"Sur le **territoire national**, Territoires en Transitions a mis à disposition **{derniere_val_od} valeurs d'indicateurs en open data**. Ces données englobent **{_nb_titres} indicateurs** provenant de **{_nb_sources} sources**.")
 
+
+
+
+    geo_badge(selected_region, selected_departement, "Indicateurs en open data", icon=":material/data_exploration:", color="violet")
+
     ind_od_data = [
         {
             "id": "Valeurs indicateurs open data",
@@ -1361,7 +1366,7 @@ for col_stock, ref_code, ref_label in [
         })
 
     with col_stock:
-        st.markdown(f"**{ref_label}** : **{_total_fmt} collectivités** labellisées dont **{_nb_4plus_fmt}** avec 4 étoiles ou plus.")
+        st.markdown(f"**{ref_label}** : **{_total_fmt} collectivités** labellisées dont **{_nb_4plus_fmt} avec 4 étoiles ou plus.**")
         if not df_ref_stock.empty:
             with elements(f"line_label_stock_{ref_code}"):
                 with mui.Box(sx={"height": 450}):
