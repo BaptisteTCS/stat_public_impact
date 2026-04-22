@@ -72,22 +72,20 @@ def geo_badge(selected_region, selected_departement, text, icon, color):
 def load_data():
     df_collectivite = read_table('collectivite', where_sql="type_collectivite='EPCI' and nature_collectivite not in ('POLEM', 'PETR', 'SIVU', 'SIVOM', 'SMF', 'SMO')")
     df_ct_actives = read_table('ct_actives') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Date activation
-    df_ct_users_actifs = read_table('user_actifs_ct_mois') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - User actifs
+    df_ct_users_actifs = read_table('user_actifs_ct_mois') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - User actifs > ce n'est pas propre car on filtre apres en utilisant activite_semaine, on pourrait utiliser directement activite_semaine
     df_activite_semaine = read_table('activite_semaine') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/Dz9DmMwquBQiWTJN0JKlCn/ - L-2
     df_pap = read_table('passage_pap_region') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - evolution pap region
-    df_fap = read_table('evolution_fa_region')
     df_ind_perso = read_table('evolution_ind_pers') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Evolution ind pers
     df_ind_od = read_table('evolution_ind_od')
     df_ind_od_producteur = read_table('ind_od_producteur_indicateur')
     df_labellisation = read_table('labellisation_region')
-    df_completude = read_table('completude_region') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Completude region
     df_plans_distrib = read_table('plan_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Plan distrib
     df_pap_52 = read_table('pap_statut_5_fiches_modifiees_52_semaines')
     df_fa_distrib = read_table('fa_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - FA disrib
     df_labellisation_stock = read_table('labellisation_stock_evolution') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Labellisation stock evolution
-    return df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock 
+    return df_ct_actives, df_ct_users_actifs, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock 
 
-df_ct_actives, df_ct_users_actifs, df_fap, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_completude, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock = load_data()
+df_ct_actives, df_ct_users_actifs, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock = load_data()
 
 df_collectivite = df_collectivite[
     ~df_collectivite['nom'].str.contains('SM|PETR|Syndicat', case=False, na=False)
