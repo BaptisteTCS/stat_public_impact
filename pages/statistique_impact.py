@@ -383,11 +383,11 @@ _pct_pap = round(_nb_pap / _total_carte * 100) if _total_carte else 0
 
 
 if selected_region == "Toutes" and selected_departement == "Tous":
-    st.markdown(f"Sur le **territoire national**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
+    st.markdown(f"Sur le **territoire national**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions dont **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 elif selected_region != "Toutes" and selected_departement ==  "Tous":
-    st.markdown(f"En région **{selected_region}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
+    st.markdown(f"En région **{selected_region}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions dont **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"En **{selected_departement}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions et **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
+    st.markdown(f"En **{selected_departement}**, **{_pct} % des EPCI** ont créé un compte sur Territoires en Transitions dont **{_pct_pap} % ont un plan d'action pilotable.**", help="Un plan d'action pilotable est un plan contenant au moins 5 fiches avec un titre, un statut et une personne pilote.")
 
 
 if gdf_epci.empty:
