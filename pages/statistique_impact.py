@@ -45,6 +45,29 @@ theme_actif = {
     }
 }
 
+# ===================================================
+# PALETTE : couleurs pastel utilisées dans tous les graphiques
+# ===================================================
+
+PALETTE_LIGHT = [
+    '#D9D9D9', '#FEF1D8', '#F7B1C2', '#A4E7C7', '#D8EEFE',
+    '#B8D6F7', '#96C7DA', '#E1E1FD', '#FFD0BB', '#FFB595',
+    '#FBE7B5', '#E4CDEE', '#C6C3E3', '#EEEEEE', '#C3C3FB',
+]
+
+COULEUR_MINT         = '#A4E7C7'
+COULEUR_MINT_FONCE   = '#7DD9B0'
+COULEUR_BLEU         = '#96C7DA'
+COULEUR_BLEU_CLAIR   = '#B8D6F7'
+COULEUR_BLEU_PALE    = '#D8EEFE'
+COULEUR_PECHE        = '#FFB595'
+COULEUR_PECHE_CLAIR  = '#FFD0BB'
+COULEUR_VIOLET       = '#E4CDEE'
+COULEUR_VIOLET_FONCE = '#C49DD3'
+COULEUR_VIOLET_CLAIR = '#E1E1FD'
+COULEUR_GRIS         = '#D9D9D9'
+
+
 DATE_DEBUT_GRAPHES = pd.Timestamp("2024-01-01")
 
 
@@ -267,7 +290,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.7,
+                areaOpacity=0.8,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -287,7 +310,7 @@ else:
                         "symbolShape": "circle",
                     }
                 ],
-                colors={"scheme": "pastel2"},
+                colors=["#A4E7C7", "#96C7DA", "#FFD0BB", "#E4CDEE", "#FBE7B5"],
                 theme=theme_actif,
             )
         
@@ -354,9 +377,9 @@ _STATUT_PROFIL = "Compte actif"
 _STATUT_SANS = "Sans compte"
 _STATUT_ORDER = [_STATUT_PAP, _STATUT_PROFIL, _STATUT_SANS]
 _COLOR_MAP = {
-    _STATUT_PAP:    "#22c55e",
-    _STATUT_PROFIL: "#93c5fd",
-    _STATUT_SANS:   "#cbd5e1",
+    _STATUT_PAP:    COULEUR_MINT_FONCE,
+    _STATUT_PROFIL: COULEUR_BLEU_CLAIR,
+    _STATUT_SANS:   COULEUR_GRIS,
 }
 
 st.markdown('---')
@@ -586,11 +609,11 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.3,
+                areaOpacity=0.8,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
-                colors=["#3b82f6"],
+                colors=[COULEUR_BLEU],
                 theme=theme_actif,
             )
 
@@ -657,10 +680,10 @@ if not df_distrib.empty:
                 padding=0.25,
                 valueScale={"type": "linear"},
                 indexScale={"type": "band", "round": True},
-                colors=["rgba(59, 130, 246, 0.8)"],
+                colors=[COULEUR_BLEU],
                 borderRadius=3,
                 borderWidth=1,
-                borderColor="#3b82f6",
+                borderColor=COULEUR_BLEU,
                 axisTop=None,
                 axisRight=None,
                 axisBottom={
@@ -678,7 +701,7 @@ if not df_distrib.empty:
                 },
                 labelSkipHeight=12,
                 enableLabel=True,
-                labelTextColor="#ffffff",
+                labelTextColor="#31333F",
                 theme=theme_actif,
             )
 
@@ -789,7 +812,7 @@ else:
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
-                colors=["#3b82f6", "#10b981"],
+                colors=[COULEUR_BLEU, COULEUR_MINT],
                 legends=[
                     {
                         "anchor": "bottom-right",
@@ -916,7 +939,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.7,
+                areaOpacity=0.8,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -936,7 +959,7 @@ else:
                         "symbolShape": "circle",
                     }
                 ],
-                colors={"scheme": "pastel2"},
+                colors=["#A4E7C7", "#96C7DA", "#FFD0BB", "#E4CDEE", "#FBE7B5", "#B8D6F7", "#FFB595", "#C3C3FB", "#F7B1C2", "#D8EEFE"],
                 theme=theme_actif,
             )
 
@@ -1039,7 +1062,7 @@ else:
                 useMesh=True,
                 enableSlices="x",
                 lineWidth=2,
-                colors=["#f59e0b", "#10b981", "#3b82f6"],
+                colors=[COULEUR_PECHE, COULEUR_MINT, COULEUR_BLEU],
                 legends=[
                     {
                         "anchor": "bottom-right",
@@ -1132,11 +1155,11 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.3,
+                areaOpacity=0.8,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
-                colors=["#f97316"],
+                colors=[COULEUR_PECHE],
                 theme=theme_actif,
             )
 
@@ -1227,11 +1250,11 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.3,
+                areaOpacity=0.8,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
-                colors=["#8b5cf6"],
+                colors=[COULEUR_VIOLET],
                 theme=theme_actif,
             )
 
@@ -1247,11 +1270,11 @@ st.markdown("## Evaluer et valoriser la progression de chaque territoire")
 geo_badge(selected_region, selected_departement, "Labellisation", icon=":material/stack_star:", color="orange")
 
 _couleurs_etoiles = {
-    1: "#fde68a",
-    2: "#fbbf24",
-    3: "#f59e0b",
-    4: "#d97706",
-    5: "#92400e",
+    1: "#FEF1D8",
+    2: "#FFD0BB",
+    3: "#FFB595",
+    4: "#F08D6E",
+    5: "#D86A4A",
 }
 
 df_label_stock_filtered = df_labellisation_stock.copy()
@@ -1346,7 +1369,7 @@ for col_stock, ref_code, ref_label in [
                             "tickRotation": 0,
                         },
                         enableArea=True,
-                        areaOpacity=0.7,
+                        areaOpacity=0.8,
                         enablePoints=False,
                         useMesh=True,
                         enableSlices="x",
