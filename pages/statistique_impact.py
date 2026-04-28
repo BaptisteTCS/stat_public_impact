@@ -864,21 +864,21 @@ df_pap52_grouped = (
     .reset_index(name='nb_plans')
 )
 
-all_mois_pap52 = sorted(df_pap52_grouped['mois'].unique())
-all_types_pap52 = df_pap52_grouped['nom_plan'].unique()
-
-_dernier_mois_tri = max(all_mois_pap52)
-totaux_par_type = (
-    df_pap52_grouped[df_pap52_grouped['mois'] == _dernier_mois_tri]
-    .groupby('nom_plan')['nb_plans']
-    .sum()
-    .sort_values(ascending=False)
-)
-types_tries = totaux_par_type.index.tolist()
-
 if df_pap52_grouped.empty:
     st.info("Aucune donnée de plans actifs disponible.")
 else:
+    all_mois_pap52 = sorted(df_pap52_grouped['mois'].unique())
+    all_types_pap52 = df_pap52_grouped['nom_plan'].unique()
+
+    _dernier_mois_tri = max(all_mois_pap52)
+    totaux_par_type = (
+        df_pap52_grouped[df_pap52_grouped['mois'] == _dernier_mois_tri]
+        .groupby('nom_plan')['nb_plans']
+        .sum()
+        .sort_values(ascending=False)
+    )
+    types_tries = totaux_par_type.index.tolist()
+
     _dernier_mois_pap = max(all_mois_pap52)
     _nb_actifs_dernier = df_pap52_filtered[(df_pap52_filtered.mois==_dernier_mois_pap) & (df_pap52_filtered.statut=='actif')].plan.nunique()
     _nb_actifs_fmt = f"{_nb_actifs_dernier:,}".replace(",", "\u202f")
@@ -1105,19 +1105,19 @@ df_ind_evolution = (
     .sort_values('mois')
 )
 
-derniere_val_ind = f"{int(df_ind_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
-derniere_val_ct = f"{int(df_ind_evolution['nb_ct'].iloc[-1]):,}".replace(",", "\u202f")
-
-if selected_region != "Toutes" and selected_departement == "Tous":
-    st.markdown(f"En région **{selected_region}**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
-elif selected_region != "Toutes" and selected_departement != "Tous":
-    st.markdown(f"En **{selected_departement}**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
-else:
-    st.markdown(f"Sur le **territoire national**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
-
 if df_ind_evolution.empty:
     st.info("Aucune donnée d'indicateurs disponible pour les filtres sélectionnés.")
 else:
+    derniere_val_ind = f"{int(df_ind_evolution['nb'].iloc[-1]):,}".replace(",", "\u202f")
+    derniere_val_ct = f"{int(df_ind_evolution['nb_ct'].iloc[-1]):,}".replace(",", "\u202f")
+
+    if selected_region != "Toutes" and selected_departement == "Tous":
+        st.markdown(f"En région **{selected_region}**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
+    elif selected_region != "Toutes" and selected_departement != "Tous":
+        st.markdown(f"En **{selected_departement}**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
+    else:
+        st.markdown(f"Sur le **territoire national**, **{derniere_val_ct} collectivités** ont créé **{derniere_val_ind} indicateurs personnalisés**.")
+
     geo_badge(selected_region, selected_departement, "Nombre d'indicateurs personnalisés", icon=":material/stacked_line_chart:", color="orange")
 
     ind_data = [
