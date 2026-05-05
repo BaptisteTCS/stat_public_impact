@@ -290,7 +290,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.8,
+                areaOpacity=0.6,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -372,8 +372,8 @@ _sirens_avec_pap = set(
     ]['siren'].dropna().astype(str)
 )
 
-_STATUT_PAP = "Compte actif + Plan d'action pilotable"
-_STATUT_PROFIL = "Compte actif"
+_STATUT_PAP = "Compte actif et au moins un plan d'action pilotable"
+_STATUT_PROFIL = "Compte actif sans plan d'action pilotable"
 _STATUT_SANS = "Sans compte"
 _STATUT_ORDER = [_STATUT_PAP, _STATUT_PROFIL, _STATUT_SANS]
 _COLOR_MAP = {
@@ -609,7 +609,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.8,
+                areaOpacity=0.6,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -939,7 +939,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.8,
+                areaOpacity=0.6,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -1155,7 +1155,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.8,
+                areaOpacity=0.6,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -1250,7 +1250,7 @@ else:
                     "legendOffset": -60,
                 },
                 enableArea=True,
-                areaOpacity=0.8,
+                areaOpacity=0.6,
                 enablePoints=False,
                 useMesh=True,
                 enableSlices="x",
@@ -1369,7 +1369,7 @@ for col_stock, ref_code, ref_label in [
                             "tickRotation": 0,
                         },
                         enableArea=True,
-                        areaOpacity=0.8,
+                        areaOpacity=0.6,
                         enablePoints=False,
                         useMesh=True,
                         enableSlices="x",
