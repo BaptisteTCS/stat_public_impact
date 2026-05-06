@@ -17,7 +17,8 @@ st.markdown("""
 
 pages = {
     "Favoris": [
-        st.Page("pages/statistique_impact.py", icon="🌠"),
+        st.Page("pages/statistique_impact.py", icon="🌠", default=True),
+        st.Page("pages/matrice_impact.py", icon="🎯", url_path="matrice_impact"),
     ],
 }
 
