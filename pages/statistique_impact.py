@@ -106,7 +106,7 @@ def load_data():
     df_pap_52 = read_table('pap_statut_5_fiches_modifiees_52_semaines')
     df_fa_distrib = read_table('fa_distrib') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - FA disrib
     df_labellisation_stock = read_table('labellisation_stock_evolution') #https://datalore.jetbrains.com/notebook/3z8wdKwizolR7wA321R4Rl/zDBnbKbrbzhC1RYZAKnhxB/ - Labellisation stock evolution
-    return df_ct_actives, df_ct_users_actifs, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock 
+    return df_ct_actives, df_ct_users_actifs, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock
 
 df_ct_actives, df_ct_users_actifs, df_pap, df_ind_perso, df_ind_od, df_ind_od_producteur, df_labellisation, df_collectivite, df_activite_semaine, df_plans_distrib, df_pap_52, df_fa_distrib, df_labellisation_stock = load_data()
 

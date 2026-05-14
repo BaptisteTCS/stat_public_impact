@@ -69,10 +69,11 @@ def load_data():
     df_pap_52 = read_table('pap_statut_5_fiches_modifiees_52_semaines')
     df_fap_52 = read_table('fa_distrib')
     nps = read_table('nps')
-    return df_user_actifs_ct_mois, df_activite_semaine, df_ct_actives, df_pap_52, df_fap_52, nps
+    df_taux_support = read_table('taux_contact_support')
+    return df_user_actifs_ct_mois, df_activite_semaine, df_ct_actives, df_pap_52, df_fap_52, nps, df_taux_support
 
 
-df_user_actifs_ct_mois, df_activite_semaine, df_ct_actives, df_pap_52, df_fap_52, nps = load_data()
+df_user_actifs_ct_mois, df_activite_semaine, df_ct_actives, df_pap_52, df_fap_52, nps, df_taux_support = load_data()
 
 # Exclusion BE/conseillers/internes via intersection des emails avec activite_semaine
 df_user_actifs_ct_mois = df_user_actifs_ct_mois[
@@ -327,15 +328,6 @@ def fap_actifs_52_semaines(mois: pd.Timestamp) -> int:
 # ==========================
 # Interface
 # ==========================
-
-# ==========================
-# 1. UTILISABLE
-# ==========================
-# st.markdown("---")
-# st.markdown("## 1. Utilisable")
-# st.info("En attente de la collecte des retours utilisateurs.")
-
-
 # ==========================
 # Helpers de formatage des phrases markdown
 # ==========================
@@ -383,11 +375,31 @@ def _serie_fap(m):
 def _serie_pap(m):
     return pap_actifs_52_du_mois(m)
 
+# ==========================
+# 1. UTILISABLE
+# ==========================
+# st.markdown("---")
+st.markdown("## 1. Utilisable")
+
+st.badge("Assistance", icon=":material/support_agent:", color="blue")
+taux_support = df_taux_support[df_taux_support['month']==MOIS_REF]['taux_support_bug_%']/100
+col_support, _, _ = st.columns(3)
+with col_support:
+    kpi_card(
+        label="Taux de contact du support",
+        valeur_actuelle=taux_support,
+        fmt="percent",
+        help_text=(
+            f"Nombre de contact au support lié à un bug ou besoin de guidage sur le nombre total d'utilisateur actif en {_format_mois_fr(MOIS_REF)}."
+        ),
+    )
+
+
 
 # ==========================
 # 2. UTILISÉ
 # ==========================
-st.markdown("## 1. Utilisé")
+st.markdown("## 2. Utilisé")
 
 # --- Utilisateurs actifs ---
 nb_users_actuel = utilisateurs_actifs_du_mois(MOIS_REF)
@@ -503,7 +515,7 @@ kpi_chart_card(
 # 3. UTILE
 # ==========================
 st.markdown("---")
-st.markdown("## 2. Utile")
+st.markdown("## 3. Utile")
 
 # --- NPS (kpi_card classique, pas de graphe demandé) ---
 st.badge("Satisfaction des utilisateurs", icon=":material/thumb_up_off_alt:", color="blue")
@@ -552,7 +564,7 @@ kpi_chart_card(
 # 4. IMPACTANT
 # ==========================
 st.markdown("---")
-st.markdown("## 3. Impactant")
+st.markdown("## 4. Impactant")
 
 nb_pap_actifs_actuel = pap_actifs_52_du_mois(MOIS_REF)
 nb_pap_actifs_prev = pap_actifs_52_du_mois(MOIS_REF_M12)
@@ -585,7 +597,7 @@ kpi_chart_card(
 # 5. EFFICIENT
 # ==========================
 st.markdown("---")
-st.markdown("## 4. Efficient")
+st.markdown("## 5. Efficient")
 
 BUDGET_ANNUEL = 1_600_000  # Budget annuel brut alloué à la plateforme (€)
 
