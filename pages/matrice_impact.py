@@ -422,7 +422,7 @@ with col_support:
         fmt="percent",
         percent_decimals=1,
         help_text=(
-            f"Nombre de contact au support lié à un bug ou besoin de guidage sur le nombre total d'utilisateur actif en {_format_mois_fr(MOIS_REF)}."
+            f"Nombre de contacts au support liés à un bug ou besoin de guidage sur le nombre total d'utilisateurs actifs en {_format_mois_fr(MOIS_REF)}."
         ),
     )
 
