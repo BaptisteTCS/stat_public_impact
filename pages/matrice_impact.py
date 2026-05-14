@@ -87,6 +87,13 @@ if getattr(df_user_actifs_ct_mois['mois'].dt, 'tz', None) is not None:
 df_user_actifs_ct_mois = df_user_actifs_ct_mois.dropna(subset=['mois', 'email']).copy()
 df_user_actifs_ct_mois['mois'] = df_user_actifs_ct_mois['mois'].dt.to_period('M').dt.to_timestamp()
 
+# Normalisation des dates pour la table de taux de contact support
+df_taux_support['month'] = pd.to_datetime(df_taux_support['month'], errors='coerce')
+if getattr(df_taux_support['month'].dt, 'tz', None) is not None:
+    df_taux_support['month'] = df_taux_support['month'].dt.tz_localize(None)
+df_taux_support = df_taux_support.dropna(subset=['month']).copy()
+df_taux_support['month'] = df_taux_support['month'].dt.to_period('M').dt.to_timestamp()
+
 
 # ==========================
 # Helpers
@@ -150,6 +157,7 @@ def kpi_card(
     valeur_actuelle: float,
     valeur_precedente: float | None = None,
     fmt: str = "number",
+    percent_decimals: int = 0,
     suffixe: str = "",
     delta_color: str = "normal",
     help_text: str | None = None,
@@ -157,20 +165,40 @@ def kpi_card(
     """Affiche un st.metric uniforme.
 
     Paramètres :
-    - fmt : "number" (entier formaté) ou "percent" (en %, arrondi à l'entier)
+    - fmt : "number" (entier formaté) ou "percent" (en %)
+    - percent_decimals : nombre de décimales à afficher pour fmt="percent"
     - suffixe : suffixe à coller à la valeur (ex: " utilisateurs")
     """
+    def _scalar_or_default(v, default: float = 0.0) -> float:
+        """Convertit une valeur (scalaire/Series) en float, avec fallback."""
+        if isinstance(v, pd.Series):
+            v = v.dropna()
+            if v.empty:
+                return default
+            v = v.iloc[0]
+        try:
+            out = float(v)
+        except (TypeError, ValueError):
+            return default
+        if pd.isna(out):
+            return default
+        return out
+
+    valeur_actuelle = _scalar_or_default(valeur_actuelle, default=0.0)
+    prev = _scalar_or_default(valeur_precedente, default=0.0) if valeur_precedente is not None else None
+
     if fmt == "percent":
-        val_str = f"{int(round(valeur_actuelle * 100))}%"
-        if valeur_precedente is not None:
-            delta = (valeur_actuelle - valeur_precedente) * 100
+        pct = valeur_actuelle * 100
+        val_str = f"{pct:.{percent_decimals}f}%"
+        if prev is not None:
+            delta = (valeur_actuelle - prev) * 100
             delta_str = f"{int(round(delta)):+d} pts"
         else:
             delta_str = None
     else:
         val_str = f"{int(round(valeur_actuelle)):,}".replace(",", " ") + suffixe
-        if valeur_precedente is not None:
-            delta = valeur_actuelle - valeur_precedente
+        if prev is not None:
+            delta = valeur_actuelle - prev
             delta_str = f"{int(round(delta)):+,}".replace(",", " ")
         else:
             delta_str = None
@@ -382,13 +410,17 @@ def _serie_pap(m):
 st.markdown("## 1. Utilisable")
 
 st.badge("Assistance", icon=":material/support_agent:", color="blue")
-taux_support = df_taux_support[df_taux_support['month']==MOIS_REF]['taux_support_bug_%']/100
+taux_support_series = df_taux_support.loc[
+    df_taux_support['month'] == MOIS_REF, 'taux_support_bug_%'
+]
+taux_support = float(taux_support_series.dropna().iloc[0]) / 100 if not taux_support_series.dropna().empty else 0.0
 col_support, _, _ = st.columns(3)
 with col_support:
     kpi_card(
         label="Taux de contact du support",
         valeur_actuelle=taux_support,
         fmt="percent",
+        percent_decimals=1,
         help_text=(
             f"Nombre de contact au support lié à un bug ou besoin de guidage sur le nombre total d'utilisateur actif en {_format_mois_fr(MOIS_REF)}."
         ),
